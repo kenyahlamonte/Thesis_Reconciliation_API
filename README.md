@@ -3,15 +3,15 @@ The final project for my UoL degree is a reconiliation API, built to return sear
 
 ## Quickstart
 
-# bash
+### bash
 python -m venv .venv
-# windows
+### windows
 . .venv/Scripts/activate
-# macOS/linux
+### macOS/linux
 source .venv/bin/activate
 
-# dependencies 
+### dependencies 
 pip install -r requirements.txt
 
-# server
+### server
 uvicorn app.main:app --reload
