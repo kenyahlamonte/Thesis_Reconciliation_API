@@ -1,7 +1,9 @@
 # Thesis_Reconciliation_API
 The final project for my UoL degree is a reconiliation API, built to return searches on the database using OpenRefine 
 
+### ---------------
 ## Quickstart
+### ---------------
 
 ### bash
 python -m venv .venv
@@ -15,3 +17,9 @@ pip install -r requirements.txt
 
 ### server
 uvicorn app.main:app --reload
+
+### ---------------
+## Powershell vs. Linux
+### ---------------
+
+Powershell users use run.ps1, Linux users run make
