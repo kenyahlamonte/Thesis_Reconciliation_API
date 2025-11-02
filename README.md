@@ -2,6 +2,15 @@
 The final project for my UoL degree is a reconiliation API, built to return searches on the database using OpenRefine 
 
 ### ---------------
+### Datasets & licences
+### ---------------
+- **REPD** — Renewable Energy Planning Database (UK). Used for project pipeline info. Licencing is © Crown copyright. Licensed under the Open Government Licence v3.0.
+Use and re-use the Information that is available under this licence, freely and flexibly, with only a few conditions. (public) 
+- **NESO TEC Register** — Transmission Entry Capacity register (UK). Licence: National Energy SO Open Data Licence v1.0.
+Notes: Data used only for academic prototype; attribution maintained; no redistribution of bulk raw where restricted.
+
+
+### ---------------
 ## Quickstart
 ### ---------------
 
