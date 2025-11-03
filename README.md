@@ -23,16 +23,24 @@ https://www.gov.uk/government/publications/renewable-energy-planning-database-mo
 python -m venv .venv
 ```
 ### windows
+```
 . .venv/Scripts/activate
+```
 
 ### macOS/linux
+```
 source .venv/bin/activate
+```
 
 ### dependencies 
+```
 pip install -r requirements.txt
+```
 
 ### server
+```
 uvicorn app.main:app --reload
+```
 
 ### ---------------
 ## Powershell vs. Linux
