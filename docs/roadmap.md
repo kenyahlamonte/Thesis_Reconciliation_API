@@ -20,7 +20,7 @@ The project is currently in **Phase I** (v0.1.8)
 
 ## Phase I (by 18 Dec)
 **Goal:** Minimal, working reconciliation endpoint that OpenRefine can call and get valid JSON back.
-- [ ] Define minimally viable reconciliation spec in code (request/response shapes).
+- [x] Define minimally viable reconciliation spec in code (request/response shapes).
 - [ ] Implement /reconcile endpoint (accept both GET query= and POST queries= forms).
 - [ ] Build a lightweight, baseline reconcilitation algorithm:
     - [ ] Normalise project names
