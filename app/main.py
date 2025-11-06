@@ -2,7 +2,7 @@ from fastapi import FastAPI, Form
 from .reconmodels import *
 import json
 
-app = FastAPI(title="UK Renewable Energy Reconciliation API", version="0.1.5")
+app = FastAPI(title="UK Renewable Energy Reconciliation API", version="0.1.9")
 
 @app.get("/")
 def mainfest() -> dict:
@@ -13,8 +13,10 @@ def mainfest() -> dict:
         "defaultTypes": [{"id": "/renewable", "name": "Renewable Facility"}]
     }
 
-@app.post("/reconcile")
-def reconcile(queries: str = Form(...)) -> ResponsePayload:
+#http://127.0.0.1:8001/reconcile?queries={%22q0%22:{%22query%22:%22Aberarder%20Wind%20Farm%22,%22limit%22:3}}
+
+@app.api_route("/reconcile", methods=["GET", "POST"])
+def reconcile(queries: str | None = None) -> ResponsePayload:
     queries_dict = json.loads(queries)
 
     validated_queries = {
@@ -32,7 +34,7 @@ def reconcile(queries: str = Form(...)) -> ResponsePayload:
                 location="Scotland",
                 type="Wind Onshore",
                 score=100,
-                match=true
+                match=True
             )
         ]
     
