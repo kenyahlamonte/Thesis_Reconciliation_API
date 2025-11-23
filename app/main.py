@@ -21,7 +21,7 @@ async def reconcile(
     request: Request,
 
     #parameters
-    queries: Annotated[Optional[str], Form(None)] = None,
+    queries: Annotated[Optional[str], Form()] = None,
     q: Optional[str] = None,
     query: Optional[str] = None,
     
