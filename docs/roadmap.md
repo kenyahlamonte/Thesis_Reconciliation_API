@@ -1,10 +1,10 @@
 # Project Roadmap — Renewables Reconciliation API
 
-_Last updated: 3 Nov 2025_
+_Last updated: 25 Nov 2025_
 
 ## Overview
 The roadmap outlines the next development phases for the Renewable Reconciliation API prototype.  
-The project is currently in **Phase I** (v0.1.8)
+The project is currently in **Phase I** (v0.1.13)
 
 ---
 
@@ -21,7 +21,7 @@ The project is currently in **Phase I** (v0.1.8)
 ## Phase I (by 18 Dec)
 **Goal:** Minimal, working reconciliation endpoint that OpenRefine can call and get valid JSON back.
 - [x] Define minimally viable reconciliation spec in code (request/response shapes).
-- [ ] Implement /reconcile endpoint (accept both GET query= and POST queries= forms).
+- [x] Implement /reconcile endpoint (accept both GET query= and POST queries= forms).
 - [ ] Build a lightweight, baseline reconcilitation algorithm:
     - [ ] Normalise project names
     - [ ] Compare names with substring or simple RapidFuzz ratio
@@ -34,7 +34,7 @@ The project is currently in **Phase I** (v0.1.8)
 
 ---
 
-## Phase II (by 26 Jan)
+## Phase II (by 9 Feb)
 **Goal:** Make the implementation robust, well-documented, and testable to a 2:1 standard.
 - [ ] Improve matching quality:
     - [ ] Swap crude ratio for proper RapidFuzz token-set or partial ratio.
