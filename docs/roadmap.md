@@ -4,7 +4,7 @@ _Last updated: 25 Nov 2025_
 
 ## Overview
 The roadmap outlines the next development phases for the Renewable Reconciliation API prototype.  
-The project is currently in **Phase I** (v0.1.13)
+The project is currently in **Phase I** (v0.1.14)
 
 ---
 
@@ -23,10 +23,10 @@ The project is currently in **Phase I** (v0.1.13)
 - [x] Define minimally viable reconciliation spec in code (request/response shapes).
 - [x] Implement /reconcile endpoint (accept both GET query= and POST queries= forms).
 - [ ] Build a lightweight, baseline reconcilitation algorithm:
-    - [ ] Normalise project names
-    - [ ] Compare names with substring or simple RapidFuzz ratio
-    - [ ] Filter by approximate capactiy band (10%)
-    - [ ] Return top-N candidates with crude confidence socre (e.g., ratiox100).
+    - [x] Normalise project names
+    - [x] Compare names with substring or simple RapidFuzz ratio
+    - [x] Filter by approximate capactiy band (10%)
+    - [x] Return top-N candidates with crude confidence socre (e.g., ratiox100).
 - [ ] Add required HTTP headers & encoding: Content-Type: application/json; charset=utf-8, CORS (for local dev), Cache-Control: no-store.
 - [ ] Basic functionality tests (pytest TestClient) for status code, schema, and encoding.
 - [ ] Example curl + README snippet so OpenRefine setup is trivial.
