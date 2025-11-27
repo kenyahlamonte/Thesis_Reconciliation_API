@@ -1,10 +1,10 @@
 # Project Roadmap — Renewables Reconciliation API
 
-_Last updated: 25 Nov 2025_
+_Last updated: 27 Nov 2025_
 
 ## Overview
 The roadmap outlines the next development phases for the Renewable Reconciliation API prototype.  
-The project is currently in **Phase I** (v0.1.14)
+The project is currently in **Phase I** (v0.1.15)
 
 ---
 
@@ -22,12 +22,12 @@ The project is currently in **Phase I** (v0.1.14)
 **Goal:** Minimal, working reconciliation endpoint that OpenRefine can call and get valid JSON back.
 - [x] Define minimally viable reconciliation spec in code (request/response shapes).
 - [x] Implement /reconcile endpoint (accept both GET query= and POST queries= forms).
-- [ ] Build a lightweight, baseline reconcilitation algorithm:
+- [x] Build a lightweight, baseline reconcilitation algorithm:
     - [x] Normalise project names
     - [x] Compare names with substring or simple RapidFuzz ratio
     - [x] Filter by approximate capactiy band (10%)
     - [x] Return top-N candidates with crude confidence socre (e.g., ratiox100).
-- [ ] Add required HTTP headers & encoding: Content-Type: application/json; charset=utf-8, CORS (for local dev), Cache-Control: no-store.
+- [x] Add required HTTP headers & encoding: Content-Type: application/json; charset=utf-8, CORS (for local dev), Cache-Control: no-store.
 - [ ] Basic functionality tests (pytest TestClient) for status code, schema, and encoding.
 - [ ] Example curl + README snippet so OpenRefine setup is trivial.
 - [ ] Version bump and CHANGELOG.
@@ -76,4 +76,4 @@ The project is currently in **Phase I** (v0.1.14)
 - **Tasks:** Attach provenance fields to responses (`source`, `dataset_version`, `retrieved_at`); log mapping rules applied; keep a small `provenance.jsonl`.
 - **Acceptance:** Each result includes provenance; an auditor can trace a candidate back to source rows and mapping steps.
 
-**Deliverables:** short evaluation report (metrics + plots), updated README (usage, keys, limits), config sample (`.env.example`), and version bump.
+**Deliverables:** detailed evaluation reports (metrics + plots), updated README (usage, keys, limits), config sample (`.env.example`), and version bump.
