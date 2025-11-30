@@ -1,5 +1,9 @@
-# Thesis_Reconciliation_API
-The final project for my UoL degree is a reconiliation API, built to return searches on the database using OpenRefine 
+# UK Renewable Energy Reconciliation API
+
+A lightweight reconciliation service implementing the **OpenRefine Reconciliation API (v0.2)** for matching NESO TEC client-side data against the **Renewable Energy Planning Database (REPD)**.
+
+The `/reconcile` endpoint accepts GET and POST inputs and returns results in an OpenRefine-compatible structure.
+
 
 ### ---------------
 ### Datasets & licences
@@ -39,11 +43,49 @@ pip install -r requirements.txt
 
 ### server
 ```
-uvicorn app.main:app --reload
+uvicorn app.main:app --reload --port 8001
 ```
+
+The API will be available at: http://localhost:8001
 
 ### ---------------
 ## Powershell vs. Linux
 ### ---------------
 
-Powershell users use run.ps1, Linux users run make
+Powershell users use run.ps1, Linux users run 
+
+### ---------------
+## API Reference
+### ---------------
+
+### GET - Single Query
+```
+curl "http://localhost:8001/reconcile?q=Aberarder%20Wind%20Farm"
+```
+### GET - Batch Query
+```
+curl "http://localhost:8001/reconcile?queries={
+  \"q0\": {\"query\": \"Aberarder Wind Farm\", \"limit\": 3},
+  \"q1\": {\"query\": \"Another Site\", \"limit\": 3}
+}"
+```
+### POST - Form Request
+```
+curl -X POST http://localhost:8001/reconcile \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  --data-urlencode 'queries={"q0": {"query": "Aberarder Wind Farm", "limit": 3}}'
+```
+### POST - JSON Request
+```
+curl -X POST http://localhost:8001/reconcile \
+  -H "Content-Type: application/json" \
+  -d '{
+        "queries": {
+          "q0": { "query": "Aberarder Wind Farm", "limit": 3 }
+        }
+      }'
+```
+### healthy
+```
+curl http://localhost:8001/healthy
+```
