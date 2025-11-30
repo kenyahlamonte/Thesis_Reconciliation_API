@@ -4,6 +4,7 @@ from app.main import app
 
 client = TestClient(app)
 
+#tests 23/11/25
 #test GET with a single query
 def test_reconcile_get_q_single():
     resp = client.get("/reconcile", params={"q": "Aberarder Wind Farm"})
@@ -81,3 +82,54 @@ def test_reconcile_missing_queries():
     data = resp.json()
     assert "detail" in data
     assert "Provide ?queries" in data["detail"]
+
+#tests 29/11/
+#test headers and encoding
+def test_reconcile_headers_and_encoding():
+    resp = client.get("/reconcile", params={"q": "Aberarder Wind Farm"})
+    assert resp.status_code == 200
+
+    assert resp.headers["content-type"] == "application/json; charset=utf-8"
+
+    assert resp.headers.get("cache-control") == "no-store"
+
+    assert resp.encoding.lower() == "utf-8"
+
+#test shape of response
+def test_reconcile_response_schema_single():
+    resp = client.get("/reconcile", params={"q": "Aberarder Wind Farm"})
+    assert resp.status_code == 200
+
+    data = resp.json()
+    assert isinstance(data, dict)
+    assert "q0" in data
+    assert "result" in data["q0"]
+
+    results = data["q0"]["result"]
+    assert isinstance(results, list)
+    assert len(results) >= 1
+
+    candidate = results[0]
+    expected_keys = {"id", "name", "location", "type", "score", "match"}
+    assert expected_keys.issubset(candidate.keys())
+
+    assert isinstance(candidate["id"], str)
+    assert isinstance(candidate["name"], str)
+    assert isinstance(candidate["score"], float)
+    assert isinstance(candidate["match"], bool)
+
+#test non-reconcile headers
+def test_manifest_headers_and_encoding():
+    resp = client.get("/")
+    assert resp.status_code == 200
+    assert resp.headers["content-type"] == "application/json; charset=utf-8"
+    assert resp.headers.get("cache-control") == "no-store"
+    assert resp.encoding.lower() == "utf-8"
+
+def test_health_headers_and_encoding():
+    resp = client.get("/healthy")
+    assert resp.status_code == 200
+    assert resp.headers["content-type"] == "application/json; charset=utf-8"
+    assert resp.headers.get("cache-control") == "no-store"
+    assert resp.encoding.lower() == "utf-8"
+

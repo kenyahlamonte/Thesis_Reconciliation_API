@@ -1,10 +1,10 @@
 # Project Roadmap — Renewables Reconciliation API
 
-_Last updated: 27 Nov 2025_
+_Last updated: 30 Nov 2025_
 
 ## Overview
 The roadmap outlines the next development phases for the Renewable Reconciliation API prototype.  
-The project is currently in **Phase I** (v0.1.15)
+The project is currently in **Phase I** (v0.1.17)
 
 ---
 
@@ -28,7 +28,7 @@ The project is currently in **Phase I** (v0.1.15)
     - [x] Filter by approximate capactiy band (10%)
     - [x] Return top-N candidates with crude confidence socre (e.g., ratiox100).
 - [x] Add required HTTP headers & encoding: Content-Type: application/json; charset=utf-8, CORS (for local dev), Cache-Control: no-store.
-- [ ] Basic functionality tests (pytest TestClient) for status code, schema, and encoding.
+- [x] Basic functionality tests (pytest TestClient) for status code, schema, and encoding.
 - [ ] Example curl + README snippet so OpenRefine setup is trivial.
 - [ ] Version bump and CHANGELOG.
 
@@ -36,6 +36,8 @@ The project is currently in **Phase I** (v0.1.15)
 
 ## Phase II (by 9 Feb)
 **Goal:** Make the implementation robust, well-documented, and testable to a 2:1 standard.
+- [ ] Build data processing script from CSV to DB.
+- [ ] Integrate DB into existing code structure.
 - [ ] Improve matching quality:
     - [ ] Swap crude ratio for proper RapidFuzz token-set or partial ratio.
     - [ ] Add feature weights and adjustable threshold.
@@ -76,4 +78,4 @@ The project is currently in **Phase I** (v0.1.15)
 - **Tasks:** Attach provenance fields to responses (`source`, `dataset_version`, `retrieved_at`); log mapping rules applied; keep a small `provenance.jsonl`.
 - **Acceptance:** Each result includes provenance; an auditor can trace a candidate back to source rows and mapping steps.
 
-**Deliverables:** detailed evaluation reports (metrics + plots), updated README (usage, keys, limits), config sample (`.env.example`), and version bump.
+**Deliverables:** detailed evaluation reports (metrics + plots), updated README (usage, keys, limits), config sample (`.env.example`), and version bump, CHANGELOG.

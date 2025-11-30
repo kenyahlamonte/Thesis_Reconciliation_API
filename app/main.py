@@ -29,7 +29,7 @@ def mainfest() -> dict:
 
     return JSONResponse(
         content=payload,
-        media_type="application/json; charset=uft-8",
+        media_type="application/json; charset=utf-8",
         headers={"Cache-Control": "no-store"}
     )
 
@@ -117,7 +117,12 @@ async def reconcile(
 
 @app.get("/healthy")
 def health():
-    return {"status": "ok"}
+    payload = {"status": "ok"}
+    return JSONResponse(
+        content=payload,
+        media_type="application/json; charset=utf-8",
+        headers={"Cache-Control": "no-store"},
+    )
 
 
 
@@ -125,3 +130,5 @@ def health():
 #https://www.w3.org/community/reports/reconciliation/CG-FINAL-specs-0.2-20230410/
 #https://docs.pydantic.dev/1.10/usage/models/
 #https://fastapi.tiangolo.com/tutorial/cors/#use-corsmiddleware
+#https://fastapi.tiangolo.com/advanced/response-directly/
+
