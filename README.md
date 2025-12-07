@@ -52,7 +52,7 @@ The API will be available at: http://localhost:8001
 ## Powershell vs. Linux
 ### ---------------
 
-Powershell users use run.ps1, Linux users run 
+Powershell users use run.ps1, Linux users run make
 
 ### ---------------
 ## API Reference
