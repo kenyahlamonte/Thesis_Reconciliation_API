@@ -1,5 +1,8 @@
 import sqlite3
-from typing import Dict
+from typing import Dict, Optional
+from datetime import datetime, timezone
+from pathlib import Path
+import csv
 
 REPD_COLUMN_MAP: Dict[str, str] = {
     "project_name": "Site Name",
@@ -144,3 +147,117 @@ CREATE INDEX IF NOT EXISTS idx_grid_project
 CREATE INDEX IF NOT EXISTS idx_planning_project
     ON planning_consent(project_id);
 """
+
+def normalise_name(value: Optional[str]) -> Optional[str]:
+    if value is None:
+        return None
+    value = value.strip()
+    return value.lower() if value else None
+
+def get_field(row: Dict[str, str], logical_name: str) -> Optional[str]:
+    header = REPD_COLUMN_MAP.get(logical_name)
+    if not header:
+        return None
+    value = row.get(header, "")
+    value = value.strip()
+    return value or None
+
+def parse_floar(value: Optional[str]) -> Optional[float]:
+    if value is None:
+        return None
+    try:
+        return float(value.replace(",", ""))
+    except Exception:
+        return None
+    
+def current_timestamp() -> str:
+    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+def load_repd(csv_path: Path, db_path: Path, recreate: bool = False) -> None:
+    if recreate and db_path.exists():
+        db_path.unlink()
+
+    conn = sqlite3.connect(str(db_path))
+    conn.execute("PRAGMA foreign_keys = ON;")
+
+    conn.executescript(SCHEMA_SQL)
+
+    with csv_path.open("r", eoncoding="utf-8-sig", newline="") as f:
+        reader = csv.DictReader(f)
+        rows_processed = 0
+        with conn:
+            for row in reader:
+                #process
+                rows_processed += 1
+
+def insert_to_db(conn: sqlite3.Connection,
+                 row: Dict[str, str]) -> None:
+    
+    project_name = get_field(row, "Site Name")
+    if not project_name:
+        return
+    
+    status = get_field(row, "Development Status")
+    tech = get_field(row, "Technology Type")
+    capacity_mw = get_field(row, "Installed Capacity (MWelec)")
+
+    site_name = get_field(row, "Address")
+    lat = get_field(row, "Y-coordinate")
+    long = get_field(row, "X-coordinate")
+    loc_auth = get_field(row, "Local Authority")
+    postcode = get_field(row, "Postcode")
+    country = get_field(row, "Country")
+
+    developer = get_field(row, "Operator (or Applicant)")
+
+    planning_ref = get_field(row, "Planning Application Reference")
+    planning_auth = get_field(row, "Planning Authority")
+    planning_sub = get_field(row, "Planning Application Submitted")
+    planning_with = get_field(row, "Planning Application Withdrawn")
+    planning_app_ref = get_field(row, "Planning Permission Refused")
+    planning_appeal = get_field(row, "Appeal Lodged")
+    planning_appeal_with = get_field(row, "Appeal Withdrawn")
+    planning_appeal_ref = get_field(row, "Appeal Refused")
+    planning_appeal_grant = get_field(row, "Appeal Granted")
+    planning_grant = get_field(row, "Planning Permission Granted")
+    planning_expired = get_field(row, "Planning Permission Expired")
+    underconstruction = get_field(row, "Under Construction")
+    operational = get_field(row, "Operational")
+
+    repd_id = get_field(row, "Ref ID")
+    old_id = get_field(row, "Old Ref ID")
+    new_id = get_field(row, "Are they re-applying (New REPD Ref)")
+
+    now = current_timestamp()
+
+    name_norm = normalise_name(project_name)
+
+    cur = conn.execute(
+        """
+        INSERT INTO project (
+            canonical_name,
+            name_normalised,
+            status,
+            technology_id,
+            site_id,
+            lead_company,
+            country_code,
+            created_at,
+            updated_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            project_name.strip(),
+            name_norm,
+            status,
+            tech_id,
+            site_id,
+            company_id,
+            country,
+            now,
+            now
+        )
+    )
+    
+    project_id = cur.lastrowid
