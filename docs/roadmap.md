@@ -4,7 +4,7 @@ _Last updated: 30 Nov 2025_
 
 ## Overview
 The roadmap outlines the next development phases for the Renewable Reconciliation API prototype.  
-The project is currently in **Phase I** (v0.1.17)
+The project is currently in **Phase II** (v0.2.1)
 
 ---
 
@@ -29,8 +29,8 @@ The project is currently in **Phase I** (v0.1.17)
     - [x] Return top-N candidates with crude confidence socre (e.g., ratiox100).
 - [x] Add required HTTP headers & encoding: Content-Type: application/json; charset=utf-8, CORS (for local dev), Cache-Control: no-store.
 - [x] Basic functionality tests (pytest TestClient) for status code, schema, and encoding.
-- [ ] Example curl + README snippet so OpenRefine setup is trivial.
-- [ ] Version bump and CHANGELOG.
+- [x] Example curl + README snippet so OpenRefine setup is trivial.
+- [x] Version bump and CHANGELOG.
 
 ---
 
