@@ -4,41 +4,79 @@ from datetime import datetime, timezone
 from pathlib import Path
 import csv
 
-REPD_COLUMN_MAP: Dict[str, str] = {
-    "project_name": "Site Name",
-    "status": "Development Status",
-    "technology": "Technology Type",
-    "capacity_mw": "Installed Capacity (MWelec)",
+# -----------------------------
+#  column-map
+# -----------------------------
 
-    "site_name": "Address",
-    "latitude": "Y-coordinate",
-    "longitude": "X-coordinate",
-    "la_authority": "Local Authority",
-    "postcode": "Postcode",
-    "country": "Country",
+REPD_GROUPS = {
 
-    "developer": "Operator (or Applicant)",
+    "site": {
+        "fields": [
+            "Address",
+            "Y-coordinate",
+            "X-coordinate",
+            "Ref ID",
+            "Local Authority",
+            "Postcode",
+            "Country",
+        ],
+        "handler": get_or_create_site
+    },
 
-    "planning_reference": "Planning Application Reference",
-    "planning_authority": "Planning Authority",
-    "planning_application_submitted": "Planning Application Submitted",
-    "planning_application_withdrawn": "Planning Application Withdrawn",
-    "planning_application_refused": "Planning Permission Refused",
-    "planning_appeal_lodged": "Appeal Lodged",
-    "planning_appeal_withdrawn": "Appeal Withdrawn",
-    "planning_appeal_refused": "Appeal Refused",
-    "planning_appeal_granted": "Appeal Granted",
-    "planning_application_granted": "Planning Permission Granted",
-    "planning_permission_expired": "Planning Permission Expired",
-    "site_under_construction": "Under Construction",
-    "site_operational": "Operational",
+    "developer": {
+        "fields": [
+            "Operator (or Applicant)",
+        ],
+        "handler": get_or_create_developer
+    },
 
-    "repd_id": "Ref ID",
-    "old_id": "Old Ref ID",
-    "new_id": "Are they re-applying (New REPD Ref)",
+    "technology": {
+        "fields": [
+            "Technology Type",
+        ],
+        "handler": get_or_create_technology
+    },
+
+    "project": {
+        "fields": [
+            "Site Name",
+            "Development Status",
+            "Installed Capacity (MWelec)",
+        ],
+        "handler": create_project_row
+    },
+
+    "planning": {
+        "fields": [
+            "Planning Application Reference",
+            "Planning Authority",
+            "Planning Application Submitted",
+            "Planning Application Withdrawn",
+            "Planning Permission Refused",
+            "Appeal Lodged",
+            "Appeal Withdrawn",
+            "Appeal Refused",
+            "Appeal Granted",
+            "Planning Permission Granted",
+            "Planning Permission Expired",
+            "Under Construction",
+            "Operational",
+        ],
+        "handler": create_planning_row
+    }
 }
 
-DEFAULT_COUNTRY = "GB"
+REPD_PIPELINE = [
+    "site",
+    "developer",
+    "technology",
+    "project",
+    "planning"
+]
+
+# -----------------------------
+#  schema
+# -----------------------------
 
 SCHEMA_SQL = """
 PRAGMA foreign_keys = ON;
@@ -148,6 +186,10 @@ CREATE INDEX IF NOT EXISTS idx_planning_project
     ON planning_consent(project_id);
 """
 
+# -----------------------------
+#  helpers
+# -----------------------------
+
 def normalise_name(value: Optional[str]) -> Optional[str]:
     if value is None:
         return None
@@ -162,7 +204,7 @@ def get_field(row: Dict[str, str], logical_name: str) -> Optional[str]:
     value = value.strip()
     return value or None
 
-def parse_floar(value: Optional[str]) -> Optional[float]:
+def parse_float(value: Optional[str]) -> Optional[float]:
     if value is None:
         return None
     try:
@@ -173,6 +215,129 @@ def parse_floar(value: Optional[str]) -> Optional[float]:
 def current_timestamp() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
+# -----------------------------
+#  get-or-create
+# -----------------------------
+
+def get_or_create_developer(conn: sqlite3.Connection,
+                            legal_name: Optional[str]) -> Optional[int]:
+    if not legal_name:
+        return None
+    name_norm = normalise_name(legal_name)
+
+    cur = conn.execute(
+        "SELECT company_id FROM company WHERE name_normalised = ?",
+        (name_norm,)
+    )
+    row = cur.fetchone()
+    if row:
+        return row [0]
+    
+    cur = conn.execute(
+        """
+        INSERT INTO company (legal_name, name_normalised, company_type)
+        VALUES (?, ?, ?)
+        """,
+        (legal_name.strip(), name_norm)
+    )
+    return cur.lastrowid
+
+def get_or_create_site(conn: sqlite3.Connection, row, site_context) -> Optional[Dict[str, int]]:
+    if not site_name:
+        return None
+    
+    name_norm = normalise_name(site_name)
+
+    if postcode:
+        cur = conn.execute(
+            """
+            SELECT site_id FROM site
+            WHERE name_normalised = ? AND postcode = ?
+            """,
+            (name_norm, postcode)
+        )
+    else:
+        cur = conn.execute(
+            """
+            SELECT site_id FROM site
+            WHERE name_normalised = ?
+            """,
+            (name_norm,)
+        )
+    
+    row = cur.fetchone()
+
+    if row:
+        return row[0]
+    
+    cur = conn.execute(
+        """
+        INSERT INTO site (
+            site_name, name_normalised, latitude, longitude,
+            grid_ref, la_authority, postcode, country_code
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            site_name.strip(),
+            name_norm,
+            latitude,
+            longitude,
+            grid_ref,
+            la_authority,
+            postcode,
+            country_code or DEFAULT_COUNTRY
+        )
+    )
+
+    return ("site_id": cur.lastrowid}
+
+def get_or_create_technology(conn: sqlite3.Connection,
+                             tech_text: Optional[str]) -> Optional[int]:
+    if not tech_text:
+        return None
+    
+    tech_text_clean = tech_text.strip()
+
+    cur = conn.execute(
+        """
+        SELECT technology_id FROM technology
+        WHERE tech_name = ?
+        """,
+        (tech_text_clean)
+    )
+
+    row = cur.fetchone()
+    if row:
+        return row[0]
+    
+    cur = conn.execute(
+        """
+        INSERT INTO technology (tech_name)
+        VALUES (?, ?)
+        """,
+        (tech_text_clean)
+    )
+
+    return cur.lastrowid
+
+# -----------------------------
+#  row load logic
+# -----------------------------
+
+def insert_to_db(conn: sqlite3.Connection,
+                 row: Dict[str, str]) -> None:
+    
+    site_context = {}
+    developer_context = {}
+    technology_context = {}
+    project_context = {}
+
+    DEFAULT_COUNTRY = "GB"
+
+# -----------------------------
+#  entry point
+# -----------------------------
 def load_repd(csv_path: Path, db_path: Path, recreate: bool = False) -> None:
     if recreate and db_path.exists():
         db_path.unlink()
@@ -190,74 +355,3 @@ def load_repd(csv_path: Path, db_path: Path, recreate: bool = False) -> None:
                 #process
                 rows_processed += 1
 
-def insert_to_db(conn: sqlite3.Connection,
-                 row: Dict[str, str]) -> None:
-    
-    project_name = get_field(row, "Site Name")
-    if not project_name:
-        return
-    
-    status = get_field(row, "Development Status")
-    tech = get_field(row, "Technology Type")
-    capacity_mw = get_field(row, "Installed Capacity (MWelec)")
-
-    site_name = get_field(row, "Address")
-    lat = get_field(row, "Y-coordinate")
-    long = get_field(row, "X-coordinate")
-    loc_auth = get_field(row, "Local Authority")
-    postcode = get_field(row, "Postcode")
-    country = get_field(row, "Country")
-
-    developer = get_field(row, "Operator (or Applicant)")
-
-    planning_ref = get_field(row, "Planning Application Reference")
-    planning_auth = get_field(row, "Planning Authority")
-    planning_sub = get_field(row, "Planning Application Submitted")
-    planning_with = get_field(row, "Planning Application Withdrawn")
-    planning_app_ref = get_field(row, "Planning Permission Refused")
-    planning_appeal = get_field(row, "Appeal Lodged")
-    planning_appeal_with = get_field(row, "Appeal Withdrawn")
-    planning_appeal_ref = get_field(row, "Appeal Refused")
-    planning_appeal_grant = get_field(row, "Appeal Granted")
-    planning_grant = get_field(row, "Planning Permission Granted")
-    planning_expired = get_field(row, "Planning Permission Expired")
-    underconstruction = get_field(row, "Under Construction")
-    operational = get_field(row, "Operational")
-
-    repd_id = get_field(row, "Ref ID")
-    old_id = get_field(row, "Old Ref ID")
-    new_id = get_field(row, "Are they re-applying (New REPD Ref)")
-
-    now = current_timestamp()
-
-    name_norm = normalise_name(project_name)
-
-    cur = conn.execute(
-        """
-        INSERT INTO project (
-            canonical_name,
-            name_normalised,
-            status,
-            technology_id,
-            site_id,
-            lead_company,
-            country_code,
-            created_at,
-            updated_at
-        )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """,
-        (
-            project_name.strip(),
-            name_norm,
-            status,
-            tech_id,
-            site_id,
-            company_id,
-            country,
-            now,
-            now
-        )
-    )
-    
-    project_id = cur.lastrowid

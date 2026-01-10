@@ -64,10 +64,7 @@ curl "http://localhost:8001/reconcile?q=Aberarder%20Wind%20Farm"
 ```
 ### GET - Batch Query
 ```
-curl "http://localhost:8001/reconcile?queries={
-  \"q0\": {\"query\": \"Aberarder Wind Farm\", \"limit\": 3},
-  \"q1\": {\"query\": \"Another Site\", \"limit\": 3}
-}"
+curl "http://localhost:8001/reconcile?queries={"q0": {"query": "Aberarder Wind Farm", "limit": 3},"q1": {"query": "Another Site", "limit": 3}}"
 ```
 ### POST - Form Request
 ```
