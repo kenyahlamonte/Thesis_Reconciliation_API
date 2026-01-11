@@ -4,7 +4,7 @@ _Last updated: 1 Jan 2026_
 
 ## Overview
 The roadmap outlines the next development phases for the Renewable Reconciliation API prototype.  
-The project is currently in **Phase II** (v0.2.2)
+The project is currently in **Phase II** (v0.2.3)
 
 ---
 
@@ -36,7 +36,7 @@ The project is currently in **Phase II** (v0.2.2)
 
 ## Phase II (by 9 Feb)
 **Goal:** Make the implementation robust, well-documented, and testable to a 2:1 standard.
-- [ ] Build data processing script from CSV to DB.
+- [x] Build data processing script from CSV to DB.
 - [ ] Integrate DB into existing code structure.
 - [ ] Improve matching quality:
     - [ ] Swap crude ratio for proper RapidFuzz token-set or partial ratio.
