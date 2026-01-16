@@ -1,9 +1,20 @@
-from typing import List, Dict, Optional
-from pydantic import BaseModel
+from typing import List, Dict, Optional, Any
+from pydantic import BaseModel, Field
+
+class ReconcileQueryProperty(BaseModel):
+    pid: str
+    v: Any
 
 class ReconcileQuery(BaseModel):
     query: str
-    limit: Optional[int] = 3
+    limit: Optional[int] = Field(default=3, ge=1, le=100)
+    type: Optional[str] = None
+    type_strict: Optional[str] = None
+    properties: Optional[List[ReconcileQueryProperty]] = None
+
+class CandidateType(BaseModel):
+    id: str
+    name: str
 
 class Candidate(BaseModel):
     id: str
