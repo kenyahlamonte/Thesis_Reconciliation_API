@@ -1,5 +1,4 @@
 from typing import List, Dict, Any, Optional, Set
-from reconcile_record import ProjectRecord
 from pathlib import Path
 
 from .db_connection import (

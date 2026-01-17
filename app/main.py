@@ -1,11 +1,13 @@
 from fastapi import FastAPI, Form, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from typing import Optional, Annotated
-from .reconmodels import *
+from typing import Optional, Annotated, Any, Dict, cast
 import json as _json
 
-app = FastAPI(title="UK Renewable Energy Reconciliation API", version="0.1.11")
+from .reconcile_logic import run_reconciliation
+from .db_connection import check_database_exists, get_project_count
+
+app = FastAPI(title="UK Renewable Energy Reconciliation Service", version="0.2.5")
 
 app.add_middleware(
     CORSMiddleware,
@@ -19,8 +21,8 @@ app.add_middleware(
 )
 
 @app.get("/")
-def mainfest() -> dict:
-    payload = {
+def mainfest() -> JSONResponse:
+    payload : Dict[str, Any] = {
         "name": "REPD x NESO TEC Reconciliation",
         "identifierSpace": "https://example.org/renewables/id",
         "schemaSpace": "https://example.org/renewables/schema",
@@ -44,10 +46,12 @@ async def reconcile(
     q: Optional[str] = None,
     query: Optional[str] = None,
     
-) -> dict: 
+) -> JSONResponse: 
     
+    if not check_database_exists():
+        raise HTTPException(status_code=503, detail="Database not initialised)")
     #expected OpenRefine standard POST
-    payload = queries
+    payload: str | dict[str, Any] | None = None
 
     #if not POST then maybe a GET
     if payload is None:
@@ -65,7 +69,7 @@ async def reconcile(
             body = await request.json()
             if isinstance(body, dict):
                 if "queries" in body:
-                    payload = body["queries"]
+                    payload = cast(dict[str, Any], body["queries"])
 
                 #wrap into batch
                 elif "query" in body:
@@ -80,34 +84,23 @@ async def reconcile(
             detail="Provide ?queries=..., ?q=..., form queries=..., or JSON {\"queries\":{...}}"
         )
 
-    #normalisation
-    queries_dict = _json.loads(payload) if isinstance(payload, str) else payload
+    if isinstance(payload, str):
+        try:
+            queries_dict = _json.loads(payload)
+        except _json.JSONDecodeError as e:
+            raise HTTPException(status_code=400, detail=f"Invalide JSON: {e}")
+    else:
+        queries_dict = payload
     
-    #validation
-    validated_queries = {
-        query_id: ReconcileQuery(**query_data)
-        for query_id, query_data in queries_dict.items()
-    }
-
-    def searchOne(q: ReconcileQuery):
-        #matching logic later
-        #return one fake match
-        return [
-            Candidate(
-                id="repd001",
-                name=q.query,
-                location="Scotland",
-                type="Wind Onshore",
-                score=100,
-                match=True
-            )
-        ]
+    if not isinstance(queries_dict, dict):
+        raise HTTPException(status_code=400, detail="queries must be JSON object")
     
-    #build output
-    response_payload = {
-        query_id: ReconcileResult(result=searchOne(query)).model_dump()
-        for query_id, query in validated_queries.items()
-    }
+    try:
+        response_payload = run_reconciliation(cast(dict[str, Any], queries_dict))
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=503, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Reconciliation error: {e}")
 
     return JSONResponse(
         content=response_payload,
@@ -117,9 +110,15 @@ async def reconcile(
 
 @app.get("/healthy")
 def health():
-    payload = {"status": "ok"}
+    db_exists = check_database_exists()
+    payload : Dict[str, Any] = {
+            "status": "ok" if db_exists else "db error",
+            "database": "connected" if db_exists else "missing",
+            "project_count": get_project_count() if db_exists else 0}
+    
     return JSONResponse(
         content=payload,
+        status_code = 200 if db_exists else 503,
         media_type="application/json; charset=utf-8",
         headers={"Cache-Control": "no-store"},
     )
