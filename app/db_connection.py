@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import Optional, List
 from contextlib import contextmanager
 
-DEFAULT_DB_PATH = Path(__file__).parent / "data/raw/test10rows.db"
+DEFAULT_DB_PATH = Path(__file__).parent.parent / "data" / "raw" / "test10rows.db"
 
 @dataclass
 class ProjectRecord:

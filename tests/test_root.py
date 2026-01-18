@@ -72,7 +72,7 @@ def test_manifest_structure():
 
     data = resp.json()
     assert "name" in data
-    assert "identiferSpace" in data
+    assert "identifierSpace" in data
     assert "schemaSpace" in data
     assert "defaultTypes" in data
 

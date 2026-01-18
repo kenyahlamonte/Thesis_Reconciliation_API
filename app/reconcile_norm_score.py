@@ -10,14 +10,12 @@ except ImportError:
 def normalise_name(s: str) -> str:
     if not s:
         return ""
-    
-    s.lower().strip()
 
-    s = re.sub(r"[^a-z0-9 ]+", " ", s)
+    s = re.sub(r"[\W_]+", " ", s)
 
     s = re.sub(r"\s+", " ", s)
 
-    return s
+    return s.lower().strip()
 
 #determine how similar the names are
 def name_similarity(query: str, candidate: str) -> float:
