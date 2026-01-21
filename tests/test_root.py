@@ -59,7 +59,7 @@ MOCK_PROJECTS = [
 @pytest.fixture
 def mock_projects():
     with patch("app.reconcile_logic._projects_cache", MOCK_PROJECTS):
-        with patch("app.db_connection.check_databased_exists", return_value=True):
+        with patch("app.main.check_databased_exists", return_value=True):
             yield MOCK_PROJECTS
 
 # -----------------------------
@@ -78,8 +78,16 @@ def test_manifest_structure():
 
 def test_manifest_headers():
     resp = client.get("/")
-    assert resp.headers["content-type"] == "application/json; charset=uft-8"
+    assert resp.headers["content-type"] == "application/json; charset=utf-8"
     assert resp.headers.get("cache-control") == "no-store"
+
+# -----------------------------
+#  scoring testing
+# -----------------------------
+
+def test_score_candidate_weights():
+
+def test_score_candidate_capacity_bonus():
 
 # -----------------------------
 #  reconciliation testing
@@ -107,11 +115,12 @@ def test_reconcile_get_queries_batch():
     assert "q1" in data
 
 def test_reconcile_post_form_queries():
-    queries: Dict[str, Any]= {"q0": {"query": "Aberarder Wind Farm", "limit":3}}
-
-    resp = client.post("/reconcile", data={"queries": json.dumps(queries)})
-    assert resp.status_code == 200
-    assert "q0" in resp.json()
+    with patch("app.main.check_database_exists", return_value=True):
+        with patch("app.reconcile_logic.get_projects", return_value=MOCK_PROJECTS):
+            queries: Dict[str, Dict[str, Any]] = {"q0": {"query": "Aberarder Wind Farm", "limit": 3}}
+            resp = client.post("/reconcile", data={"queries": json.dumps(queries)})
+            assert resp.status_code == 200
+            assert "q0" in resp.json()
 
 def test_reconcile_post_json_queries():
     payload: Dict[str, Dict[str, Any]]= {
@@ -125,14 +134,22 @@ def test_reconcile_post_json_queries():
     assert "q0" in resp.json()
 
 def test_reconcile_missing_queries():
-    with patch("app.db_connection.check_database_exists", return_value=True):
+    with patch("app.main.check_database_exists", return_value=True):
         resp = client.get("/reconcile")
         assert resp.status_code == 422
 
 def test_reconcile_invalid_json():
-    with patch("app.db_connection.check_database_exists", return_value=True):
+    with patch("app.main.check_database_exists", return_value=True):
         resp = client.get("/reconcile", params={"queries": "not json"})
         assert resp.status_code == 422
+
+def test_reconcile_returns_best_match():
+
+def test_rconcile_empty_query():
+
+def test_reconcile_unicode_names():
+
+def test_extract_properties_missing_values():
 
 # -----------------------------
 #  response format testing
@@ -239,15 +256,24 @@ def test_capacity_within_band():
 # -----------------------------
 
 def test_health_with_db():
-    with patch("app.db_connection.check_database_exists", return_value=True):
-        with patch("app.db_connection.get_project_count", return_value=100):
+    with patch("app.main.check_database_exists", return_value=True):
+        with patch("app.main.get_project_count", return_value=100):
             resp = client.get("/healthy")
             assert resp.status_code == 200
             assert resp.json()["status"] == "ok"
 
 def test_health_without_db():
-    with patch("app.db_connection.check_database_exists", return_value=True):
-        with patch("app.db_connection.get_project_count", return_value=100):
-            resp = client.get("/healthy")
-            assert resp.status_code == 503
-            assert resp.json()["status"] == "db error"
+    with patch("app.main.check_database_exists", return_value=False):
+        resp = client.get("/healthy")
+        assert resp.status_code == 503
+        assert resp.json()["status"] == "db_error"
+
+# -----------------------------
+#  endpoint testing
+# -----------------------------
+
+def test_suggest_entity_returns_matches():
+
+def test_suggest_entity_empty_prefix():
+
+def test_admin_reload_clears_cache():

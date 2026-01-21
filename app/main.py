@@ -1,7 +1,7 @@
-from fastapi import FastAPI, Form, Request, HTTPException
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from typing import Optional, Annotated, Any, Dict, cast
+from typing import Optional, Any, Dict, cast
 import json as _json
 
 from .reconcile_logic import run_reconciliation
@@ -42,7 +42,6 @@ async def reconcile(
     request: Request,
 
     #parameters
-    queries: Annotated[Optional[str], Form()] = None,
     q: Optional[str] = None,
     query: Optional[str] = None,
     
@@ -65,17 +64,27 @@ async def reconcile(
 
     #check if raw JSON form
     if payload is None and request.method == "POST":
-        try:
-            body = await request.json()
-            if isinstance(body, dict):
-                if "queries" in body:
-                    payload = cast(dict[str, Any], body["queries"])
+        content_type = request.headers.get("content-type", "")
 
-                #wrap into batch
-                elif "query" in body:
-                    payload = {"q0": {"query": body["query"], "limit": 3}}
-        except Exception:
-            pass
+        if "application/x-www-form-urlencoded" in content_type or "multipart/form-data" in content_type:
+            try:
+                form_data = await request.form()
+                if "queries" in form_data:
+                    payload = str(form_data["queries"])
+            except Exception:
+                pass
+        
+        if payload is None:
+            try:
+                body = await request.json()
+                if isinstance(body, dict):
+                    body = cast(dict[str, Any], body)
+                    if "queries" in body:
+                        payload = cast(dict[str, Any], body["queries"])
+                    elif "query" in body:
+                        payload = {"q0": {"query": body["query"], "limit": body.get("limit", 3)}}
+            except Exception:
+                pass
 
     #handle missing data
     if payload is None:
@@ -88,12 +97,12 @@ async def reconcile(
         try:
             queries_dict = _json.loads(payload)
         except _json.JSONDecodeError as e:
-            raise HTTPException(status_code=400, detail=f"Invalide JSON: {e}")
+            raise HTTPException(status_code=422, detail=f"Invalide JSON: {e}")
     else:
         queries_dict = payload
     
     if not isinstance(queries_dict, dict):
-        raise HTTPException(status_code=400, detail="queries must be JSON object")
+        raise HTTPException(status_code=422, detail="queries must be JSON object")
     
     try:
         response_payload = run_reconciliation(cast(dict[str, Any], queries_dict))
@@ -112,7 +121,7 @@ async def reconcile(
 def health():
     db_exists = check_database_exists()
     payload : Dict[str, Any] = {
-            "status": "ok" if db_exists else "db error",
+            "status": "ok" if db_exists else "db_error",
             "database": "connected" if db_exists else "missing",
             "project_count": get_project_count() if db_exists else 0}
     
