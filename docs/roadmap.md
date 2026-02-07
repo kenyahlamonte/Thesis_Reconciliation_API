@@ -1,10 +1,10 @@
 # Project Roadmap — Renewables Reconciliation API
 
-_Last updated: 21 Jan 2026_
+_Last updated: 07 Feb 2026_
 
 ## Overview
 The roadmap outlines the next development phases for the Renewable Reconciliation API prototype.  
-The project is currently in **Phase II** (v0.2.8)
+The project is currently in **Phase II** (v0.2.9)
 
 ---
 
@@ -41,7 +41,7 @@ The project is currently in **Phase II** (v0.2.8)
 - [ ] Improve matching quality:
     - [ ] Swap crude ratio for proper RapidFuzz token-set or partial ratio.
     - [ ] Add feature weights and adjustable threshold.
-- [ ] Introduce Pydantic models for request/response validation.
+- [x] Introduce Pydantic models for request/response validation.
 - [ ] Proper error handling & status codes (400 on bad input, 415 on wrong content-type).
 - [ ] Logging config (structured INFO/ERROR) and config via env vars.
 - [ ] Unit + integration tests; target ≥80% coverage.
