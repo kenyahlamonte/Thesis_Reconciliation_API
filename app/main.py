@@ -1,13 +1,37 @@
+"""
+UK Renewable Energy Reconciliation Service.
+
+A W3C-compliant reconciliation service for matching project names against the REPD database, using the OpenRefine API.
+"""
+
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from typing import Optional, Any, Dict, cast
+from pydantic import ValidationError
+from typing import Any, Optional, Dict
 import json as _json
 
 from .reconcile_logic import run_reconciliation
 from .db_connection import check_database_exists, get_project_count
+from reconmodels import (
+    ReconcileQuery,
+    ReconcileQueriesRequest,
+    ReconcileResponse,
+    ReconcileResult,
+    Candidate,
+    CandidateType,
+    ServiceManifest,
+    ServiceType,
+    HealthResponse,
+)
 
-app = FastAPI(title="UK Renewable Energy Reconciliation Service", version="0.2.5")
+app = FastAPI(
+    title="UK Renewable Energy Reconciliation Service",
+    description="W3C-compliant reconciliation API for matching renewable energy projects against REPD",
+    version="0.2.8",
+    docs_url="/docs",
+    redoc_url="/redoc",
+)
 
 app.add_middleware(
     CORSMiddleware,
@@ -20,7 +44,7 @@ app.add_middleware(
     allow_headers=["*"]
 )
 
-@app.get("/")
+@app.api_route("/", methods=["GET", "POST"], response_model=ServiceManifest)
 def mainfest() -> JSONResponse:
     payload : Dict[str, Any] = {
         "name": "REPD x NESO TEC Reconciliation",
@@ -35,9 +59,7 @@ def mainfest() -> JSONResponse:
         headers={"Cache-Control": "no-store"}
     )
 
-#http://127.0.0.1:8001/reconcile?queries={%22q0%22:{%22query%22:%22Aberarder%20Wind%20Farm%22,%22limit%22:3}}
-
-@app.api_route("/reconcile", methods=["GET", "POST"])
+@app.api_route("/reconcile", methods=["GET", "POST"], response_model=ReconcileResponse)
 async def reconcile(
     request: Request,
 
@@ -104,6 +126,13 @@ async def reconcile(
     if not isinstance(queries_dict, dict):
         raise HTTPException(status_code=422, detail="queries must be JSON object")
     
+    #validate with Pydantic
+    try:
+        validated = ReconcileQueriesRequest.model_validate(queries_dict)
+        queries_dict = {qid: q.model_dump() for qid, q in validated.items()}
+    except ValidationError as e:
+        raise HTTPException(status_code=422, detail=e.errors())
+    
     try:
         response_payload = run_reconciliation(cast(dict[str, Any], queries_dict))
     except FileNotFoundError as e:
@@ -117,7 +146,7 @@ async def reconcile(
         headers={"Cache-Control": "no-store"},
     )
 
-@app.get("/healthy")
+@app.get("/healthy", response_model=HealthResponse)
 def health():
     db_exists = check_database_exists()
     payload : Dict[str, Any] = {
@@ -131,9 +160,6 @@ def health():
         media_type="application/json; charset=utf-8",
         headers={"Cache-Control": "no-store"},
     )
-
-
-
 
 #https://www.w3.org/community/reports/reconciliation/CG-FINAL-specs-0.2-20230410/
 #https://docs.pydantic.dev/1.10/usage/models/

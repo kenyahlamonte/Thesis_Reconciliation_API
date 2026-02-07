@@ -46,7 +46,7 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload --port 8001
 ```
 
-The API will be available at: http://localhost:8001
+The Reconciliation App will be available at: http://localhost:8001
 
 ### ---------------
 ## Powershell vs. Linux

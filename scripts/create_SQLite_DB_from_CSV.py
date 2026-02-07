@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS project (
     canonical_name TEXT NOT NULL,
     name_normalised TEXT NOT NULL,
     status         TEXT,
-    capacity_mw  REAL NOT NULL,
+    capacity_mw    REAL,
     technology_id  INTEGER,
     site_id        INTEGER,
     lead_company   INTEGER,
@@ -148,7 +148,7 @@ def parse_float(value: Optional[str]) -> Optional[float]:
         return float(value.replace(",", ""))
     except Exception:
         return None
-    
+   
 def current_timestamp() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
@@ -324,7 +324,7 @@ def create_project_row(conn: sqlite3.Connection,
         (project_name,
          project_name_norm,
          get_field(row, "Development Status"),
-         get_field(row, "Installed Capacity (MWelec)"),
+         parse_float(get_field(row, "Installed Capacity (MWelec)")),
          context.get("technology_id"),
          context.get("site_id"),
          context.get("developer_id"),
