@@ -13,7 +13,7 @@ import json as _json
 
 from .reconcile_logic import run_reconciliation
 from .db_connection import check_database_exists, get_project_count
-from reconmodels import (
+from .reconmodels import (
     ReconcileQueriesRequest,
     ReconcileResponse,
     ServiceManifest,

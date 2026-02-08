@@ -4,7 +4,7 @@ _Last updated: 08 Feb 2026_
 
 ## Overview
 The roadmap outlines the next development phases for the Renewable Reconciliation API prototype.  
-The project is currently in **Phase II** (v0.2.10)
+The project is currently in **Phase II** (v0.2.11)
 
 ---
 
@@ -42,9 +42,9 @@ The project is currently in **Phase II** (v0.2.10)
     - [ ] Swap crude ratio for proper RapidFuzz token-set or partial ratio.
     - [ ] Add feature weights and adjustable threshold.
 - [x] Introduce Pydantic models for request/response validation.
-- [ ] Proper error handling & status codes (400 on bad input, 415 on wrong content-type).
+- [x] Proper error handling & status codes (400 on bad input, 415 on wrong content-type).
 - [ ] Logging config (structured INFO/ERROR) and config via env vars.
-- [ ] Unit + integration tests; target ≥80% coverage.
+- [x] Unit + integration tests; target ≥80% coverage.
 - [ ] CI (GitHub Actions) to run tests/lint on push.
 - [ ] Documentation: endpoint contract, examples, limitations, how to point OpenRefine to the service.
 - [ ] Version bump and CHANGELOG.
