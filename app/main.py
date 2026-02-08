@@ -8,18 +8,14 @@ from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import ValidationError
-from typing import Any, Optional, Dict
+from typing import Any, cast
 import json as _json
 
 from .reconcile_logic import run_reconciliation
 from .db_connection import check_database_exists, get_project_count
 from reconmodels import (
-    ReconcileQuery,
     ReconcileQueriesRequest,
     ReconcileResponse,
-    ReconcileResult,
-    Candidate,
-    CandidateType,
     ServiceManifest,
     ServiceType,
     HealthResponse,
@@ -45,16 +41,17 @@ app.add_middleware(
 )
 
 @app.api_route("/", methods=["GET", "POST"], response_model=ServiceManifest)
-def mainfest() -> JSONResponse:
-    payload : Dict[str, Any] = {
-        "name": "REPD x NESO TEC Reconciliation",
-        "identifierSpace": "https://example.org/renewables/id",
-        "schemaSpace": "https://example.org/renewables/schema",
-        "defaultTypes": [{"id": "/renewable", "name": "Renewable Facility"}]
-    }
+def manifest() -> JSONResponse:
+    """Service manifest endpoint."""
+    payload = ServiceManifest(
+        name="REPD x NESO TEC Reconciliation",
+        identifierSpace="https://example.org/renewables/id",
+        schemaSpace="https://example.org/renewables/schema",
+        defaultTypes=[ServiceType(id="/renewable", name="Renewable Facility")]
+    )
 
     return JSONResponse(
-        content=payload,
+        content=payload.model_dump(),
         media_type="application/json; charset=utf-8",
         headers={"Cache-Control": "no-store"}
     )
@@ -62,15 +59,13 @@ def mainfest() -> JSONResponse:
 @app.api_route("/reconcile", methods=["GET", "POST"], response_model=ReconcileResponse)
 async def reconcile(
     request: Request,
-
-    #parameters
-    q: Optional[str] = None,
-    query: Optional[str] = None,
-    
+    q: str | None = None,
+    query: str | None = None,
 ) -> JSONResponse: 
     
     if not check_database_exists():
-        raise HTTPException(status_code=503, detail="Database not initialised)")
+        raise HTTPException(status_code=503, detail="Database not initialised")
+    
     #expected OpenRefine standard POST
     payload: str | dict[str, Any] | None = None
 
@@ -94,7 +89,7 @@ async def reconcile(
                 if "queries" in form_data:
                     payload = str(form_data["queries"])
             except Exception:
-                pass
+                pass  #form parsing failed, try other methods
         
         if payload is None:
             try:
@@ -102,11 +97,11 @@ async def reconcile(
                 if isinstance(body, dict):
                     body = cast(dict[str, Any], body)
                     if "queries" in body:
-                        payload = cast(dict[str, Any], body["queries"])
+                        payload = body["queries"]
                     elif "query" in body:
                         payload = {"q0": {"query": body["query"], "limit": body.get("limit", 3)}}
             except Exception:
-                pass
+                pass  #JSON parsing failed, will raise 422 below
 
     #handle missing data
     if payload is None:
@@ -119,7 +114,7 @@ async def reconcile(
         try:
             queries_dict = _json.loads(payload)
         except _json.JSONDecodeError as e:
-            raise HTTPException(status_code=422, detail=f"Invalide JSON: {e}")
+            raise HTTPException(status_code=422, detail=f"Invalid JSON: {e}")
     else:
         queries_dict = payload
     
@@ -129,34 +124,42 @@ async def reconcile(
     #validate with Pydantic
     try:
         validated = ReconcileQueriesRequest.model_validate(queries_dict)
-        queries_dict = {qid: q.model_dump() for qid, q in validated.items()}
+        queries_dict = {qid: query_obj.model_dump() for qid, query_obj in validated.items()}
     except ValidationError as e:
         raise HTTPException(status_code=422, detail=e.errors())
     
     try:
-        response_payload = run_reconciliation(cast(dict[str, Any], queries_dict))
+        response_payload = run_reconciliation(queries_dict)
     except FileNotFoundError as e:
         raise HTTPException(status_code=503, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Reconciliation error: {e}")
 
+    #validate response
+    try:
+        response = ReconcileResponse.model_validate(response_payload)
+    except ValidationError as e:
+        raise HTTPException(status_code=500, detail=f"Response validation error: {e.errors()}")
+
     return JSONResponse(
-        content=response_payload,
+        content=response.model_dump(),
         media_type="application/json; charset=utf-8",
         headers={"Cache-Control": "no-store"},
     )
 
 @app.get("/healthy", response_model=HealthResponse)
-def health():
+def health() -> JSONResponse:
+    """Health check endpoint."""
     db_exists = check_database_exists()
-    payload : Dict[str, Any] = {
-            "status": "ok" if db_exists else "db_error",
-            "database": "connected" if db_exists else "missing",
-            "project_count": get_project_count() if db_exists else 0}
+    payload = HealthResponse(
+        status="ok" if db_exists else "db_error",
+        database="connected" if db_exists else "missing",
+        project_count=get_project_count() if db_exists else 0
+    )
     
     return JSONResponse(
-        content=payload,
-        status_code = 200 if db_exists else 503,
+        content=payload.model_dump(),
+        status_code=200 if db_exists else 503,
         media_type="application/json; charset=utf-8",
         headers={"Cache-Control": "no-store"},
     )

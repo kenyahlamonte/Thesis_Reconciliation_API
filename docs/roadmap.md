@@ -1,10 +1,10 @@
 # Project Roadmap — Renewables Reconciliation API
 
-_Last updated: 07 Feb 2026_
+_Last updated: 08 Feb 2026_
 
 ## Overview
 The roadmap outlines the next development phases for the Renewable Reconciliation API prototype.  
-The project is currently in **Phase II** (v0.2.9)
+The project is currently in **Phase II** (v0.2.10)
 
 ---
 
