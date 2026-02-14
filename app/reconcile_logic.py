@@ -15,6 +15,9 @@ from .reconcile_norm_score import(
 )
 
 from .extract_from_query import extract_properties
+from .logging_config import get_logger
+
+logger = get_logger(__name__)
 
 # -----------------------------
 #  cache
@@ -26,19 +29,31 @@ def get_projects(db_path: Path = DEFAULT_DB_PATH) -> List[ProjectRecord]:
     cache_key = str(db_path)
 
     if cache_key in _cache:
+        logger.debug(f"Cache HIT: {len(_cache[cache_key])} projects from cache")
         return _cache[cache_key]
     
     if not check_database_exists(db_path):
+        logger.error(f"Database not found at {db_path}")
         raise FileNotFoundError(
             f"Database not found at {db_path}"
             "Run create_SQLite_DB_from_CSV.py first :)"
         )
     
+    logger.info(f"Loading projects from database: {db_path}")
     _cache[cache_key] = fetch_all_projects(db_path)
+    logger.info(f"Loaded {len(_cache[cache_key])} projects into cache")
+
     return _cache[cache_key]
 
 def clear_projects_cache() -> None:
+    count = sum(len(projects) for projects in _cache.values())
     _cache.clear()
+
+    countCleared = sum(len(projects) for projects in _cache.values())
+    if countCleared == 0:
+        logger.info(f"Cache cleared ({count} projects removed)")
+    else:
+        logger.info(f"Cache not cleared ({countCleared} remaining of {count} projects)")
 
 # -----------------------------
 #  blocking
@@ -83,6 +98,7 @@ def get_blocked_candidates(
     query_blocks = generate_blocks(query_normalised)
 
     if not query_blocks:
+        logger.debug("No query blocks generated, returning all projects")
         return projects
     
     blocked = [
@@ -91,6 +107,7 @@ def get_blocked_candidates(
     ]
 
     if len(blocked) < min_candidates:
+        logger.debug(f"Blocking found {len(blocked)} candidates (< {min_candidates}), using prefix fallback")
         prefix = query_normalised[:3] if len(query_normalised) >= 3 else query_normalised
         blocked = [
             p for p in projects
@@ -98,6 +115,10 @@ def get_blocked_candidates(
             or prefix in (p.site_name_normalised or "")
             or prefix in (p.developer_normalised or "")
         ]
+    else:
+        reduction_pct = (1 - len(blocked) / len(projects)) * 100
+        logger.debug(f"Blocking: {len(projects)} → {len(blocked)} candidates ({reduction_pct:.1f}% reduction)")
+
     
     return blocked if len(blocked) >= min_candidates else projects
 
@@ -159,16 +180,20 @@ def reconcile_single_query(
     
     query_str = query_obj.get("query") or ""
     if not query_str:
+        logger.warning("Empty query string provided")
         return []
     
     limit = query_obj.get("limit") or top_n
     try:
         limit = int(limit)
     except (TypeError, ValueError):
+        logger.warning(f"Invalid limit value: {limit}, using default {top_n}")
         limit = top_n
 
     if candidates is None:
         candidates = get_projects()
+
+    logger.debug(f"Reconciling query: '{query_str}' (limit={limit})")
     
     query_normalised = normalise_name(query_str)
     query_props = extract_properties(query_obj.get("properties"))
@@ -203,7 +228,18 @@ def reconcile_single_query(
         })
 
     scored.sort(key=lambda r: r["score"], reverse=True)
-    return scored[:limit]
+    results = scored[:limit]
+    
+    #log top result
+    if results:
+        top = results[0]
+        logger.info(f"Query '{query_str}' → Top match: '{top['name']}' (score: {top['score']}, match: {top['match']})")
+    else:
+        logger.warning(f"Query '{query_str}' → No matches found")
+    
+    logger.debug(f"Returning {len(results)} results (from {len(scored)} scored candidates)")
+    
+    return results
 
 def _build_description(proj: ProjectRecord) -> str:
     parts: list[str] = []
@@ -225,10 +261,13 @@ def run_reconciliation(
     db_path: Path = DEFAULT_DB_PATH
 ) -> Dict[str, Any]:
     
+    logger.info(f"Running reconciliation for {len(queries_obj)} queries")
     candidates = get_projects(db_path)
 
-    return {
+    results = {
         qid: {"result": reconcile_single_query(q, candidates)}
         for qid, q in queries_obj.items()
     }
-
+    
+    logger.debug("Reconciliation batch complete")
+    return results

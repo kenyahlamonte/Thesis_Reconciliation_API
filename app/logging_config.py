@@ -7,8 +7,8 @@ Provides easy-to-read console output for development and debugging.
 import logging
 import sys
 
-# Color codes for console output (makes logs easier to read)
-class LogColors:
+#colour codes for console output
+class LogColours:
     RESET = "\033[0m"
     RED = "\033[91m"
     YELLOW = "\033[93m"
@@ -17,34 +17,34 @@ class LogColors:
     GRAY = "\033[90m"
 
 
-class ColoredFormatter(logging.Formatter):
+class ColouredFormatter(logging.Formatter):
     """Custom formatter that adds colors to log levels."""
     
-    COLORS = {
-        logging.DEBUG: LogColors.GRAY,
-        logging.INFO: LogColors.BLUE,
-        logging.WARNING: LogColors.YELLOW,
-        logging.ERROR: LogColors.RED,
-        logging.CRITICAL: LogColors.RED,
+    COLOURS = {
+        logging.DEBUG: LogColours.GRAY,
+        logging.INFO: LogColours.BLUE,
+        logging.WARNING: LogColours.YELLOW,
+        logging.ERROR: LogColours.RED,
+        logging.CRITICAL: LogColours.RED,
     }
     
     def format(self, record: logging.LogRecord):
-        # Add color to the level name
+        #add color to the level name
         levelname = record.levelname
-        if record.levelno in self.COLORS:
-            levelname_color = f"{self.COLORS[record.levelno]}{levelname}{LogColors.RESET}"
+        if record.levelno in self.COLOURS:
+            levelname_color = f"{self.COLOURS[record.levelno]}{levelname}{LogColours.RESET}"
             record.levelname = levelname_color
         
-        # Format the message
+        #format the message
         result = super().format(record)
         
-        # Reset levelname for next use
+        #reset levelname for next use
         record.levelname = levelname
         
         return result
 
 
-def setup_logging(level: str = "INFO", use_colors: bool = True) -> None:
+def setup_logging(level: str = "INFO", use_colours: bool = True) -> None:
     """
     Configure logging for the application.
     
@@ -57,16 +57,16 @@ def setup_logging(level: str = "INFO", use_colors: bool = True) -> None:
         >>> setup_logging("INFO")   # Normal operation
         >>> setup_logging("ERROR")  # Only errors
     """
-    # Convert string level to logging constant
+    #convert string level to logging constant
     log_level = getattr(logging, level.upper(), logging.INFO)
     
-    # Create console handler
-    console_handler = logging.StreamHandler(sys.stdout)
+    #create console handler
+    console_handler = logging.StreamHandler(sys.stderr)
     console_handler.setLevel(log_level)
     
-    # Set up formatter
-    if use_colors:
-        formatter = ColoredFormatter(
+    #set up formatter
+    if use_colours:
+        formatter = ColouredFormatter(
             fmt='%(asctime)s | %(levelname)-8s | %(name)s | %(message)s',
             datefmt='%Y-%m-%d %H:%M:%S'
         )
@@ -78,20 +78,27 @@ def setup_logging(level: str = "INFO", use_colors: bool = True) -> None:
     
     console_handler.setFormatter(formatter)
     
-    # Configure root logger
+    #configure root logger
     root_logger = logging.getLogger()
     root_logger.setLevel(log_level)
     
-    # Remove existing handlers to avoid duplicates
+    #remove existing handlers to avoid duplicates
     root_logger.handlers.clear()
     
-    # Add our handler
+    #add handler
     root_logger.addHandler(console_handler)
     
-    # Reduce noise from external libraries
+    #reduce noise from external libraries
     logging.getLogger("urllib3").setLevel(logging.WARNING)
     logging.getLogger("asyncio").setLevel(logging.WARNING)
 
+    logging.basicConfig(
+        level=log_level,
+        format='%(asctime)s | %(levelname)-8s | %(name)s | %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S',
+        handlers=[console_handler],
+        force=True  #override existing config (uvicorn, etc.)
+    )
 
 def get_logger(name: str) -> logging.Logger:
     """
@@ -109,8 +116,7 @@ def get_logger(name: str) -> logging.Logger:
     """
     return logging.getLogger(name)
 
-
-# Simple convenience function for quick logging setup
+#simple convenience function for quick logging setup
 def init_logging(debug: bool = False) -> None:
     """
     Quick logging initialization.
