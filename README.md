@@ -334,5 +334,4 @@ uvicorn app.main:app --reload
 | GET/POST | `/` | Service manifest |
 | GET/POST | `/reconcile` | Reconciliation queries |
 | GET | `/healthy` | Health check |
-| GET | `/docs` | Swagger UI |
-| GET | `/redoc` | ReDoc documentation |
+| GET | `/docs` | Documentation |
