@@ -30,14 +30,14 @@ logger = get_logger(__name__)
 async def lifespan(app: FastAPI):
     """Application lifespan events - startup and shutdown."""
     logger.info("Reconciliation Service starting up")
-    logger.info(f"Service version: 0.2.16")
-    
+    logger.info("Service version: 0.2.16")
+
     if check_database_exists():
         count = get_project_count()
         logger.info(f"Database connected: {count} projects loaded")
     else:
         logger.warning("Database not found - Service will return 503 errors")
-    
+
     yield
 
     logger.info("Reconciliation Service shutting down")
@@ -48,7 +48,7 @@ app = FastAPI(
     version="0.2.16",
     docs_url="/docs",
     redoc_url=None,
-    lifespan=lifespan, 
+    lifespan=lifespan,
 )
 
 app.add_middleware(
@@ -85,12 +85,12 @@ async def reconcile(
     request: Request,
     q: str | None = None,
     query: str | None = None,
-) -> JSONResponse: 
-    
+) -> JSONResponse:
+
     if not check_database_exists():
         logger.error("Database not found - returning 503")
         raise HTTPException(status_code=503, detail="Database not initialised")
-    
+
     #expected OpenRefine standard POST
     payload: str | dict[str, Any] | None = None
 
@@ -118,7 +118,7 @@ async def reconcile(
             except Exception as e:
                 logger.warning(f"Form parsing failed: {e}")
                 pass  #form parsing failed, try other methods
-        
+
         if payload is None:
             try:
                 body = await request.json()
@@ -149,11 +149,11 @@ async def reconcile(
             raise HTTPException(status_code=422, detail=f"Invalid JSON: {e}")
     else:
         queries_dict = payload
-    
+
     if not isinstance(queries_dict, dict):
         logger.error(f"Queries must be JSON object, got {type(queries_dict)}")
         raise HTTPException(status_code=422, detail="queries must be JSON object")
-    
+
     #validate with Pydantic
     try:
         validated = ReconcileQueriesRequest.model_validate(queries_dict)
@@ -162,7 +162,7 @@ async def reconcile(
     except ValidationError as e:
         logger.error(f"Validation error: {e.errors()}")
         raise HTTPException(status_code=422, detail=e.errors())
-    
+
     try:
         response_payload = run_reconciliation(queries_dict)
 
@@ -172,7 +172,7 @@ async def reconcile(
     except FileNotFoundError as e:
         logger.error(f"Database file not found: {e}")
         raise HTTPException(status_code=503, detail=str(e))
-    
+
     except Exception as e:
         logger.error(f"Reconciliation error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Reconciliation error: {e}")
@@ -200,13 +200,13 @@ def health() -> JSONResponse:
         logger.debug(f"Health check: OK ({count} projects)")
     else:
         logger.warning("Health check: Database missing")
-    
+
     payload = HealthResponse(
         status="ok" if db_exists else "db_error",
         database="connected" if db_exists else "missing",
         project_count=get_project_count() if db_exists else 0
     )
-    
+
     return JSONResponse(
         content=payload.model_dump(),
         status_code=200 if db_exists else 503,
