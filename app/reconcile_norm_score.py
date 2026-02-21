@@ -24,15 +24,15 @@ def name_similarity(query: str, candidate: str) -> float:
 
     if not qn or not cn:
         return 0.0
-    
+
     if fuzz is not None:
         return float(fuzz.partial_ratio(qn, cn))
-    
+
     if qn == cn:
         return 100.0
     if qn in cn or cn in qn:
         return 80.0
-    
+
     return 0.0
 
 #filter based on +-10% of capacity
@@ -41,5 +41,5 @@ def capacity_within_band(query_capacity: Optional[float],
                          band: float = 0.10) -> bool:
     if query_capacity is None or project_capacity is None:
         return True
-    
+
     return abs(project_capacity - query_capacity) <= band * query_capacity

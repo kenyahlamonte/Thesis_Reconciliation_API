@@ -2,8 +2,8 @@ import pandas as pd # type: ignore
 import os
 
 #input and output setup
-input_file = r"" #path to file 
-output_dir = r"" #path to file 
+input_file = r"" #path to file
+output_dir = r"" #path to file
 os.makedirs(output_dir, exist_ok=True)
 
 #read the full CSV

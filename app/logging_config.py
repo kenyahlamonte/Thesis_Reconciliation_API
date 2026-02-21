@@ -19,7 +19,7 @@ class LogColours:
 
 class ColouredFormatter(logging.Formatter):
     """Custom formatter that adds colors to log levels."""
-    
+
     COLOURS = {
         logging.DEBUG: LogColours.GRAY,
         logging.INFO: LogColours.BLUE,
@@ -27,31 +27,31 @@ class ColouredFormatter(logging.Formatter):
         logging.ERROR: LogColours.RED,
         logging.CRITICAL: LogColours.RED,
     }
-    
+
     def format(self, record: logging.LogRecord):
         #add color to the level name
         levelname = record.levelname
         if record.levelno in self.COLOURS:
             levelname_color = f"{self.COLOURS[record.levelno]}{levelname}{LogColours.RESET}"
             record.levelname = levelname_color
-        
+
         #format the message
         result = super().format(record)
-        
+
         #reset levelname for next use
         record.levelname = levelname
-        
+
         return result
 
 
 def setup_logging(level: str = "INFO", use_colours: bool = True) -> None:
     """
     Configure logging for the application.
-    
+
     Args:
         level: Log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
         use_colors: Whether to use colored output (disable for file logging)
-    
+
     Example:
         >>> setup_logging("DEBUG")  # Show all logs
         >>> setup_logging("INFO")   # Normal operation
@@ -59,11 +59,11 @@ def setup_logging(level: str = "INFO", use_colours: bool = True) -> None:
     """
     #convert string level to logging constant
     log_level = getattr(logging, level.upper(), logging.INFO)
-    
+
     #create console handler
     console_handler = logging.StreamHandler(sys.stderr)
     console_handler.setLevel(log_level)
-    
+
     #set up formatter
     if use_colours:
         formatter = ColouredFormatter(
@@ -75,19 +75,19 @@ def setup_logging(level: str = "INFO", use_colours: bool = True) -> None:
             fmt='%(asctime)s | %(levelname)-8s | %(name)s | %(message)s',
             datefmt='%Y-%m-%d %H:%M:%S'
         )
-    
+
     console_handler.setFormatter(formatter)
-    
+
     #configure root logger
     root_logger = logging.getLogger()
     root_logger.setLevel(log_level)
-    
+
     #remove existing handlers to avoid duplicates
     root_logger.handlers.clear()
-    
+
     #add handler
     root_logger.addHandler(console_handler)
-    
+
     #reduce noise from external libraries
     logging.getLogger("urllib3").setLevel(logging.WARNING)
     logging.getLogger("asyncio").setLevel(logging.WARNING)
@@ -103,13 +103,13 @@ def setup_logging(level: str = "INFO", use_colours: bool = True) -> None:
 def get_logger(name: str) -> logging.Logger:
     """
     Get a logger for a specific module.
-    
+
     Args:
         name: Usually __name__ of the module
-        
+
     Returns:
         Configured logger instance
-        
+
     Example:
         >>> logger = get_logger(__name__)
         >>> logger.info("Starting reconciliation")
@@ -120,10 +120,10 @@ def get_logger(name: str) -> logging.Logger:
 def init_logging(debug: bool = False) -> None:
     """
     Quick logging initialization.
-    
+
     Args:
         debug: If True, enables DEBUG level logging
-        
+
     Example:
         >>> init_logging(debug=True)  # Verbose logging
         >>> init_logging()             # Normal logging

@@ -24,7 +24,7 @@ def extract_properties(props: Optional[List[Dict[str, Any]]]) -> Dict[str, Any]:
 
     if not props:
         return result
-    
+
     for p in props:
         pid = p.get("pid")
         value = p.get("v")
@@ -40,7 +40,7 @@ def extract_properties(props: Optional[List[Dict[str, Any]]]) -> Dict[str, Any]:
                 result[internal_name] = float(clean)
             except (TypeError, ValueError):
                 pass
-        
+
         else:
             result[internal_name] = value
 

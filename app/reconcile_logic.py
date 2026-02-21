@@ -31,14 +31,14 @@ def get_projects(db_path: Path = DEFAULT_DB_PATH) -> List[ProjectRecord]:
     if cache_key in _cache:
         logger.debug(f"Cache HIT: {len(_cache[cache_key])} projects from cache")
         return _cache[cache_key]
-    
+
     if not check_database_exists(db_path):
         logger.error(f"Database not found at {db_path}")
         raise FileNotFoundError(
             f"Database not found at {db_path}"
             "Run create_SQLite_DB_from_CSV.py first :)"
         )
-    
+
     logger.info(f"Loading projects from database: {db_path}")
     _cache[cache_key] = fetch_all_projects(db_path)
     logger.info(f"Loaded {len(_cache[cache_key])} projects into cache")
@@ -64,7 +64,7 @@ def generate_blocks(name_normalised: str) -> Set[str]:
 
     if not name_normalised:
         return blocks
-    
+
     words = name_normalised.split()
     blocks.update(words)
 
@@ -100,7 +100,7 @@ def get_blocked_candidates(
     if not query_blocks:
         logger.debug("No query blocks generated, returning all projects")
         return projects
-    
+
     blocked = [
         p for p in projects
         if query_blocks & generate_project_blocks(p)
@@ -119,7 +119,7 @@ def get_blocked_candidates(
         reduction_pct = (1 - len(blocked) / len(projects)) * 100
         logger.debug(f"Blocking: {len(projects)} → {len(blocked)} candidates ({reduction_pct:.1f}% reduction)")
 
-    
+
     return blocked if len(blocked) >= min_candidates else projects
 
 # -----------------------------
@@ -132,7 +132,7 @@ def score_candidate(
     query_props: Dict[str, Any],
     project: ProjectRecord
 ) -> float:
-    
+
     score_name = name_similarity(query_str, project.name)
 
     score_site = 0.0
@@ -177,12 +177,12 @@ def reconcile_single_query(
         candidates: Optional[List[ProjectRecord]] = None,
         top_n: int = 5
 ) -> List[Dict[str, Any]]:
-    
+
     query_str = query_obj.get("query") or ""
     if not query_str:
         logger.warning("Empty query string provided")
         return []
-    
+
     limit = query_obj.get("limit") or top_n
     try:
         limit = int(limit)
@@ -194,7 +194,7 @@ def reconcile_single_query(
         candidates = get_projects()
 
     logger.debug(f"Reconciling query: '{query_str}' (limit={limit})")
-    
+
     query_normalised = normalise_name(query_str)
     query_props = extract_properties(query_obj.get("properties"))
 
@@ -229,16 +229,16 @@ def reconcile_single_query(
 
     scored.sort(key=lambda r: r["score"], reverse=True)
     results = scored[:limit]
-    
+
     #log top result
     if results:
         top = results[0]
         logger.info(f"Query '{query_str}' → Top match: '{top['name']}' (score: {top['score']}, match: {top['match']})")
     else:
         logger.warning(f"Query '{query_str}' → No matches found")
-    
+
     logger.debug(f"Returning {len(results)} results (from {len(scored)} scored candidates)")
-    
+
     return results
 
 def _build_description(proj: ProjectRecord) -> str:
@@ -253,14 +253,14 @@ def _build_description(proj: ProjectRecord) -> str:
         parts.append(f"Developer: {proj.developer}")
     if proj.site_name:
         parts.append(f"Site: {proj.site_name}")
-    return " | ".join(parts) 
+    return " | ".join(parts)
 
 
 def run_reconciliation(
     queries_obj: Dict[str, Any],
     db_path: Path = DEFAULT_DB_PATH
 ) -> Dict[str, Any]:
-    
+
     logger.info(f"Running reconciliation for {len(queries_obj)} queries")
     candidates = get_projects(db_path)
 
@@ -268,6 +268,6 @@ def run_reconciliation(
         qid: {"result": reconcile_single_query(q, candidates)}
         for qid, q in queries_obj.items()
     }
-    
+
     logger.debug("Reconciliation batch complete")
     return results

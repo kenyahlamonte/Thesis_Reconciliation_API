@@ -1,0 +1,33 @@
+[project]
+name = "repd-reconciliation"
+version = "0.2.14"
+description = "W3C-compliant reconciliation service for matching renewable energy projects against REPD"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi==0.115.0",
+    "uvicorn[standard]==0.30.0",
+    "pydantic>=2.0",
+    "python-multipart>=0.0.20",
+    "rapidfuzz>=3.14.3",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "ruff>=0.4.0",
+]
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W"]  #basic errors, pyflakes, warnings
+ignore = ["E501"]  #line too long
+
+[tool.pytest.ini_options]
+testpaths = ["tests", "."]
+python_files = ["test_*.py"]

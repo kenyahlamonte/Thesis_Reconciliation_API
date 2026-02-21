@@ -1,0 +1,13 @@
+Metadata-Version: 2.4
+Name: repd-reconciliation
+Version: 0.2.14
+Summary: W3C-compliant reconciliation service for matching renewable energy projects against REPD
+Requires-Python: >=3.11
+Requires-Dist: fastapi==0.115.0
+Requires-Dist: uvicorn[standard]==0.30.0
+Requires-Dist: pydantic>=2.0
+Requires-Dist: python-multipart>=0.0.20
+Requires-Dist: rapidfuzz>=3.14.3
+Provides-Extra: dev
+Requires-Dist: pytest>=8.0.0; extra == "dev"
+Requires-Dist: ruff>=0.4.0; extra == "dev"

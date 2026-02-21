@@ -133,11 +133,11 @@ def get_field(row: Mapping[str, str], logical_name: str) -> Optional[str]:
     header = REPD_FIELD_MAP.get(logical_name)
     if header is None:
         return None
-    
+
     raw = row.get(header)
     if not isinstance(raw, str):
         return None
-    
+
     value = raw.strip()
     return value or None
 
@@ -148,7 +148,7 @@ def parse_float(value: Optional[str]) -> Optional[float]:
         return float(value.replace(",", ""))
     except Exception:
         return None
-   
+
 def current_timestamp() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
@@ -156,14 +156,14 @@ def current_timestamp() -> str:
 #  get-or-create
 # -----------------------------
 
-def get_or_create_developer(conn: sqlite3.Connection, 
-                            row: CSVRow, 
+def get_or_create_developer(conn: sqlite3.Connection,
+                            row: CSVRow,
                             context: Context) -> Optional[Dict[str, int]]:
     legal_name = get_field(row, "Operator (or Applicant)")
 
     if not legal_name:
         return None
-    
+
     name_norm = normalise_name(legal_name)
 
     cur = conn.execute(
@@ -173,7 +173,7 @@ def get_or_create_developer(conn: sqlite3.Connection,
     row_id = cur.fetchone()
     if row_id is not None:
         return {"developer_id": row_id[0]}
-    
+
     cur = conn.execute(
         """
         INSERT INTO company (legal_name, name_normalised)
@@ -186,16 +186,16 @@ def get_or_create_developer(conn: sqlite3.Connection,
     row_id = cur.fetchone()
     if row_id is not None:
         return {"developer_id": row_id[0]}
-    
+
     return None
 
-def get_or_create_site(conn: sqlite3.Connection, 
-                       row: CSVRow, 
+def get_or_create_site(conn: sqlite3.Connection,
+                       row: CSVRow,
                        context: Context) -> Optional[Dict[str, int]]:
     site_name = get_field(row, "Address")
     if not site_name:
         return None
-    
+
     name_norm = normalise_name(site_name)
 
     postcode = get_field(row, "Postcode")
@@ -215,11 +215,11 @@ def get_or_create_site(conn: sqlite3.Connection,
             """,
             (name_norm,)
         )
-    
+
     row_id = cur.fetchone()
     if row_id is not None:
         return {"site_id": row_id[0]}
-    
+
     cur = conn.execute(
         """
         INSERT INTO site (
@@ -244,16 +244,16 @@ def get_or_create_site(conn: sqlite3.Connection,
     row_id = cur.fetchone()
     if row_id is not None:
         return {"site_id": row_id[0]}
-    
+
     return None
 
-def get_or_create_technology(conn: sqlite3.Connection, 
-                             row: CSVRow, 
+def get_or_create_technology(conn: sqlite3.Connection,
+                             row: CSVRow,
                              context: Context) -> Optional[Dict[str, int]]:
     tech_text = get_field(row, "Technology Type")
     if not tech_text:
         return None
-    
+
     tech_text_clean = tech_text.strip()
 
     cur = conn.execute(
@@ -267,7 +267,7 @@ def get_or_create_technology(conn: sqlite3.Connection,
     row_id = cur.fetchone()
     if row_id is not None:
         return {"technology_id": row_id[0]}
-    
+
     cur = conn.execute(
         """
         INSERT INTO technology (tech_name)
@@ -280,16 +280,16 @@ def get_or_create_technology(conn: sqlite3.Connection,
     row_id = cur.fetchone()
     if row_id is not None:
         return {"technology_id": row_id[0]}
-    
+
     return None
 
-def create_project_row(conn: sqlite3.Connection, 
-                        row: CSVRow, 
+def create_project_row(conn: sqlite3.Connection,
+                        row: CSVRow,
                         context: Context) -> Optional[Dict[str, int]]:
     project_name = get_field(row, "Site Name")
     if not project_name:
         return None
-    
+
     project_name_norm = normalise_name(project_name)
 
     cur = conn.execute(
@@ -303,7 +303,7 @@ def create_project_row(conn: sqlite3.Connection,
     row_id = cur.fetchone()
     if row_id is not None:
         return{"project_id": row_id[0]}
-    
+
     cur = conn.execute(
         """
         INSERT INTO project (
@@ -340,13 +340,13 @@ def create_project_row(conn: sqlite3.Connection,
 
     return None
 
-def create_planning_row(conn: sqlite3.Connection, 
-                        row: CSVRow, 
+def create_planning_row(conn: sqlite3.Connection,
+                        row: CSVRow,
                         context: Context) -> None:
     project_id = context.get("project_id")
     if project_id is None:
         return None
-    
+
     stage_fields = [
         "Planning Application Submitted",
         "Planning Application Withdrawn",
@@ -476,7 +476,7 @@ def load_repd(csv_path: Path, db_path: Path, recreate: bool = False) -> None:
                     if result:
                         context.update(result)
                 rows_processed += 1
-        
+
         print(f"Number of rows processed: {rows_processed}")
 
 # -----------------------------
@@ -513,7 +513,7 @@ def main() -> None:
     if not args.csv_file.exists():
         print(f"Error, CSV file not found: {args.csv_file}")
         raise SystemExit(1)
-    
+
     db_file = args.db_file or args.csv_file.with_suffix(".db")
 
     print(f"Loading {args.csv_file} into {db_file}...")

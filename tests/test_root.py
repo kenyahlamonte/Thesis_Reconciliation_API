@@ -11,7 +11,6 @@ from app.reconcile_logic import (
     generate_blocks,
     get_blocked_candidates,
     score_candidate,
-    get_projects,
     clear_projects_cache,
 )
 from app.reconcile_norm_score import normalise_name, name_similarity, capacity_within_band
@@ -122,47 +121,47 @@ def test_score_candidate_weights():
     query_str = "Aberarder Wind Farm"
     query_normalised = normalise_name(query_str)
     query_props: Dict[str, Any] = {}
-    
+
     project = MOCK_PROJECTS[0]
-    
+
     score = score_candidate(query_str, query_normalised, query_props, project)
-    
+
     #perfect name match should give high score
     assert score >= 50.0
     assert score <= 100.0
-    
+
     #test with mismatched name but matching site
     query_str2 = "Random Name"
     score2 = score_candidate(query_str2, normalise_name(query_str2), query_props, project)
-    
+
     #should be much lower without name match
     assert score2 < score
 
 def test_score_candidate_capacity_bonus():
     """Test capacity matching bonus scoring"""
-    project = MOCK_PROJECTS[0] 
+    project = MOCK_PROJECTS[0]
     query_str = "Aberarder"
     query_normalised = normalise_name(query_str)
-    
+
     #test with exact capacity match (within 5% band) - should get +10 bonus
     query_props_exact = {"capacity_mw": 50.0}
     score_exact = score_candidate(query_str, query_normalised, query_props_exact, project)
-    
+
     #test without capacity
     query_props_none: Dict[str, Any] = {}
     score_none = score_candidate(query_str, query_normalised, query_props_none, project)
-    
+
     #exact match should have bonus
     assert score_exact > score_none
-    
+
     #test with 15% band match (should get +5 bonus)
     query_props_close = {"capacity_mw": 55.0}
     score_close = score_candidate(query_str, query_normalised, query_props_close, project)
-    
+
     #test with 25% band match (should get +2 bonus)
     query_props_far = {"capacity_mw": 60.0}
     score_far = score_candidate(query_str, query_normalised, query_props_far, project)
-    
+
     #verify bonus hierarchy
     assert score_exact > score_close > score_far > score_none or score_exact > score_close >= score_far
 
@@ -171,15 +170,15 @@ def test_score_candidate_developer_matching():
     project = MOCK_PROJECTS[0]
     query_str = "Some Project"
     query_normalised = normalise_name(query_str)
-    
+
     #with developer match
     query_props_dev: Dict[str, Any] = {"customer_name": "SSE Renewables"}
     score_with_dev = score_candidate(query_str, query_normalised, query_props_dev, project)
-    
+
     #without developer
     query_props_no_dev: Dict[str, Any] = {}
     score_no_dev = score_candidate(query_str, query_normalised, query_props_no_dev, project)
-    
+
     #should have higher score with developer match
     assert score_with_dev >= score_no_dev
 
@@ -188,15 +187,15 @@ def test_score_candidate_technology_matching():
     project = MOCK_PROJECTS[0]
     query_str = "Aberarder"
     query_normalised = normalise_name(query_str)
-    
+
     #with matching technology
     query_props_tech: Dict[str, Any] = {"plant_type": "Wind Onshore"}
     score_with_tech = score_candidate(query_str, query_normalised, query_props_tech, project)
-    
+
     #without technology
     query_props_no_tech: Dict[str, Any] = {}
     score_no_tech = score_candidate(query_str, query_normalised, query_props_no_tech, project)
-    
+
     #should have higher score with technology match
     assert score_with_tech >= score_no_tech
 
@@ -213,7 +212,7 @@ def test_reconcile_get_q_single():
     assert "q0" in data
     assert "result" in data["q0"]
     assert len(data["q0"]["result"]) > 0
-    
+
     #check first result
     first_result = data["q0"]["result"][0]
     assert "id" in first_result
@@ -273,15 +272,15 @@ def test_reconcile_returns_best_match():
     """Test that reconciliation returns best match first"""
     resp = client.get("/reconcile", params={"q": "Aberarder Wind Farm"})
     assert resp.status_code == 200
-    
+
     result = resp.json()["q0"]["result"]
     assert len(result) > 0
-    
+
     #first result should be Aberarder Wind Farm
     first = result[0]
     assert "Aberarder" in first["name"]
     assert first["score"] > 50.0
-    
+
     #results should be sorted by score descending
     for i in range(len(result) - 1):
         assert result[i]["score"] >= result[i + 1]["score"]
@@ -299,7 +298,7 @@ def test_reconcile_unicode_names():
     queries: Dict[str, Dict[str, Any]] = {"q0": {"query": "Ábérárdér Wíñd Färm", "limit": 3}}
     resp = client.get("/reconcile", params={"queries": json.dumps(queries)})
     assert resp.status_code == 200
-    
+
     data = resp.json()
     assert "q0" in data
 
@@ -329,7 +328,7 @@ def test_reconcile_whitespace_query():
     queries: Dict[str, Dict[str, Any]] = {"q0": {"query": "  Aberarder   Wind   Farm  ", "limit": 3}}
     resp = client.get("/reconcile", params={"queries": json.dumps(queries)})
     assert resp.status_code == 200
-    
+
     result = resp.json()["q0"]["result"]
     assert len(result) > 0
 
@@ -351,10 +350,10 @@ def test_reconcile_with_properties():
             ]
         }
     }
-    
+
     resp = client.get("/reconcile", params={"queries": json.dumps(queries)})
     assert resp.status_code == 200
-    
+
     result = resp.json()["q0"]["result"]
     assert len(result) > 0
 
@@ -363,21 +362,21 @@ def test_reconcile_limit_enforcement():
     queries: Dict[str, Dict[str, Any]] = {"q0": {"query": "Wind", "limit": 2}}
     resp = client.get("/reconcile", params={"queries": json.dumps(queries)})
     assert resp.status_code == 200
-    
+
     result = resp.json()["q0"]["result"]
     assert len(result) <= 2
 
 def test_reconcile_very_large_limit(mock_projects):
     queries = {"q0": {"query": "Wind", "limit": 1000}}
     resp = client.get("/reconcile", params={"queries": json.dumps(queries)})
-    
+
     #check status code
     assert resp.status_code == 422
-    
+
     #access 'detail' key on error responses
     error_response = resp.json()
     assert "detail" in error_response
-    
+
     detail_str = str(error_response["detail"])
     assert "limit" in detail_str.lower() or "less than or equal" in detail_str.lower()
 
@@ -395,23 +394,23 @@ def test_response_schema():
     result = resp.json()["q0"]["result"]
     if len(result) > 0:
         candidate = result[0]
-        
+
         #required fields
         assert "id" in candidate
         assert "name" in candidate
         assert "score" in candidate
         assert "match" in candidate
         assert "type" in candidate
-        
+
         #type must be list
         assert isinstance(candidate["type"], list)
-        
+
         #score must be 0-100
         assert 0 <= candidate["score"] <= 100
-        
+
         #match must be boolean
         assert isinstance(candidate["match"], bool)
-        
+
         #if type is present, check structure
         if len(candidate["type"]) > 0:
             type_obj = candidate["type"][0]
@@ -429,7 +428,7 @@ def test_response_match_flag(mock_projects):
     """Test that match flag is set correctly for high scores"""
     resp = client.get("/reconcile", params={"q": "Aberarder Wind Farm"})
     result = resp.json()["q0"]["result"]
-    
+
     if len(result) > 0:
         first = result[0]
         #high score should set match=True
@@ -443,7 +442,7 @@ def test_response_description_format(mock_projects):
     """Test that description field is properly formatted"""
     resp = client.get("/reconcile", params={"q": "Aberarder"})
     result = resp.json()["q0"]["result"]
-    
+
     if len(result) > 0:
         candidate = result[0]
         if candidate.get("description"):
@@ -457,14 +456,14 @@ def test_response_description_format(mock_projects):
 # -----------------------------
 
 def test_generate_blocks():
-    f"""Test block generation for indexing"""
+    """Test block generation for indexing"""
     blocks = generate_blocks("west moray wind farm")
 
     assert "west" in blocks
     assert "moray" in blocks
     assert "wind" in blocks
     assert "farm" in blocks
-    
+
     #should also have 4-char prefixes
     assert "mora" in blocks
 
@@ -489,7 +488,7 @@ def test_blocking_matches_site():
 def test_generate_blocks_short_words():
     """Test that short words (< 4 chars) don't generate prefixes"""
     blocks = generate_blocks("a bb ccc dddd")
-    
+
     assert "a" in blocks
     assert "bb" in blocks
     assert "ccc" in blocks
@@ -504,14 +503,14 @@ def test_blocking_fallback_to_prefix():
     """Test that blocking falls back to prefix matching if needed"""
     #query that won't match blocks but will match prefix
     blocked = get_blocked_candidates("xyz", MOCK_PROJECTS, min_candidates=10)
-    
+
     #should fall back to returning all projects if no matches
     assert len(blocked) > 0
 
 def test_blocking_returns_all_if_no_matches():
     """Test that all projects returned if blocking finds too few"""
     blocked = get_blocked_candidates("zzzzz", MOCK_PROJECTS, min_candidates=10)
-    
+
     #should return all projects as fallback
     assert len(blocked) >= 3
 
@@ -557,7 +556,7 @@ def test_extract_properties_missing_values():
     ]
 
     extracted = extract_properties(props)
-    
+
     #should skip entries with missing values
     assert "capacity_mw" not in extracted
     assert "customer_name" not in extracted
@@ -576,7 +575,7 @@ def test_extract_properties_invalid_capacity():
     """Test property extraction with invalid capacity value"""
     props = [{"pid": "MW Connected", "v": "not a number"}]
     extracted = extract_properties(props)
-    
+
     #should skip invalid capacity
     assert "capacity_mw" not in extracted
 
@@ -587,9 +586,9 @@ def test_extract_properties_aliases():
         {"pid": "Connection Site", "v": "Site A"},
         {"pid": "Project Status", "v": "Operational"}
     ]
-    
+
     extracted = extract_properties(props)
-    
+
     assert extracted["capacity_mw"] == 100.0
     assert extracted["connection_site"] == "Site A"
     assert extracted["project_status"] == "Operational"
@@ -622,13 +621,13 @@ def test_name_similarity():
     """Test name similarity scoring"""
     #exact match
     assert name_similarity("Wind Farm", "Wind Farm") >= 95
-    
+
     #partial match
     assert name_similarity("Aberarder", "Aberarder Wind Farm") >= 70
-    
+
     #different
     assert name_similarity("Wind", "Solar") < 50
-    
+
     #case insensitive
     assert name_similarity("WIND FARM", "wind farm") >= 95
 
@@ -649,11 +648,11 @@ def test_capacity_within_band():
     #within 10% band
     assert capacity_within_band(100, 105, band=0.10) is True
     assert capacity_within_band(100, 110, band=0.10) is True
-    
+
     #outside 10% band
     assert capacity_within_band(100, 115, band=0.10) is False
     assert capacity_within_band(100, 85, band=0.10) is False
-    
+
     #none values should return True (no constraint)
     assert capacity_within_band(None, 100) is True
     assert capacity_within_band(100, None) is True
@@ -664,7 +663,7 @@ def test_capacity_within_band_different_bands():
     #5% band
     assert capacity_within_band(100, 105, band=0.05) is True
     assert capacity_within_band(100, 106, band=0.05) is False
-    
+
     #25% band
     assert capacity_within_band(100, 120, band=0.25) is True
     assert capacity_within_band(100, 130, band=0.25) is False
@@ -702,14 +701,14 @@ def test_health_headers():
 def test_admin_reload_clears_cache():
     """Test that cache can be cleared"""
     from app.reconcile_logic import _cache, clear_projects_cache
-    
+
     #add something to cache
     _cache["test_key"] = [MOCK_PROJECTS[0]]
     assert len(_cache) > 0
-    
+
     #clear cache
     clear_projects_cache()
-    
+
     #should be empty
     assert len(_cache) == 0
 
@@ -719,16 +718,16 @@ def test_cache_persistence():
         with patch("app.reconcile_logic.check_database_exists", return_value=True):
             #clear cache first
             clear_projects_cache()
-            
+
             #first call should fetch from DB
             from app.reconcile_logic import get_projects
             projects1 = get_projects()
             assert mock_fetch.call_count == 1
-            
+
             #second call should use cache
             projects2 = get_projects()
             assert mock_fetch.call_count == 1  # Still 1, not 2
-            
+
             #should return same data
             assert len(projects1) == len(projects2)
 
@@ -763,7 +762,7 @@ def test_reconcile_multiple_batch_queries(mock_projects):
     queries = {f"q{i}": {"query": "Wind", "limit": 2} for i in range(10)}
     resp = client.get("/reconcile", params={"queries": json.dumps(queries)})
     assert resp.status_code == 200
-    
+
     data = resp.json()
     assert len(data) == 10
 
@@ -783,11 +782,11 @@ def test_project_without_optional_fields(mock_projects):
         developer=None,
         developer_normalised=None,
     )
-    
+
     query_str = "Minimal"
     query_normalised = normalise_name(query_str)
     query_props: Dict[str, Any] = {}
-    
+
     #should not crash
     score = score_candidate(query_str, query_normalised, query_props, minimal_project)
     assert score >= 0.0
@@ -797,11 +796,11 @@ def test_reconcile_single_query_result_type(mock_projects):
     """Test that result types are correctly populated"""
     resp = client.get("/reconcile", params={"q": "Aberarder"})
     result = resp.json()["q0"]["result"]
-    
+
     if len(result) > 0:
         candidate = result[0]
         assert len(candidate["type"]) > 0
-        
+
         type_obj = candidate["type"][0]
         assert type_obj["id"].startswith("/")
         assert len(type_obj["name"]) > 0

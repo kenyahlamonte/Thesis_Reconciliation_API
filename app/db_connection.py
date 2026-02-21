@@ -82,17 +82,17 @@ def fetch_all_projects(db_path: Path = DEFAULT_DB_PATH) -> List[ProjectRecord]:
                     developer=company_data[0],
                     developer_normalised=company_data[1]
                 ))
-            
+
             logger.info(f"Successfully fetched {len(result)} projects from database")
             return result
-    
+
     except sqlite3.Error as e:
         logger.error(f"Database error while fetching projects: {e}")
         raise
     except Exception as e:
         logger.error(f"Unexpected error while fetching projects: {e}", exc_info=True)
         raise
-    
+
 def get_project_count(db_path: Path = DEFAULT_DB_PATH) -> int:
     try:
         with get_db_connection(db_path) as conn:
@@ -101,7 +101,7 @@ def get_project_count(db_path: Path = DEFAULT_DB_PATH) -> int:
     except sqlite3.Error as e:
         logger.error(f"Database error while counting projects: {e}")
         return 0
-    
+
 def check_database_exists(db_path: Path = DEFAULT_DB_PATH) -> bool:
     exists = db_path.exists()
     if exists:
