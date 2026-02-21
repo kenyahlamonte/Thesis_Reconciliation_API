@@ -20,6 +20,21 @@ from .logging_config import get_logger
 logger = get_logger(__name__)
 
 # -----------------------------
+#  scoring config
+# -----------------------------
+
+WEIGHT_NAME = 0.50
+WEIGHT_SITE = 0.20
+WEIGHT_DEVELOPER = 0.15
+WEIGHT_TECHNOLOGY = 0.05
+
+MATCH_THRESHOLD = 90.0
+
+CAPACITY_BONUS_EXACT = 10   # within 5%
+CAPACITY_BONUS_CLOSE = 5    # within 15%
+CAPACITY_BONUS_LOOSE = 2    # within 25%
+
+# -----------------------------
 #  cache
 # -----------------------------
 
@@ -150,20 +165,20 @@ def score_candidate(
         score_tech = name_similarity(query_tech, project.technology)
 
     score = (
-        score_name * 0.50 +
-        score_site * 0.20 +
-        score_dev * 0.15 +
-        score_tech * 0.05
+        score_name * WEIGHT_NAME +
+        score_site * WEIGHT_SITE +
+        score_dev * WEIGHT_DEVELOPER +
+        score_tech * WEIGHT_TECHNOLOGY
     )
 
     query_capacity = query_props.get('capacity_mw')
     if query_capacity is not None and project.capacity_mw is not None:
         if capacity_within_band(query_capacity, project.capacity_mw, band=0.05):
-            score += 10
+            score += CAPACITY_BONUS_EXACT
         elif capacity_within_band(query_capacity, project.capacity_mw, band=0.15):
-            score += 5
+            score += CAPACITY_BONUS_CLOSE
         elif capacity_within_band(query_capacity, project.capacity_mw, band=0.25):
-            score += 2
+            score += CAPACITY_BONUS_LOOSE
 
     return min(score, 100.0)
 
@@ -222,7 +237,7 @@ def reconcile_single_query(
             "id": proj.id,
             "name": proj.name,
             "score": round(score, 2),
-            "match": score >= 90.0,
+            "match": score >= MATCH_THRESHOLD,
             "type": result_type,
             "description": _build_description(proj),
         })
