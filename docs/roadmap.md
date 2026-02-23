@@ -4,7 +4,7 @@ _Last updated: 21 Feb 2026_
 
 ## Overview
 The roadmap outlines the next development phases for the Renewable Reconciliation API prototype.  
-The project is currently in **Phase II** (v0.3.0)
+The project is currently in **Phase II** (v0.3.1)
 
 ---
 
@@ -54,15 +54,15 @@ The project is currently in **Phase II** (v0.3.0)
 ## Phase III (by 10 Mar)
 **Goal:** Extend the prototype with robustness, safety, and evaluative depth, achieving at least **two** of the below extensions.
 
-### 1) Fuzzy matching [ ]
+### 1) Fuzzy matching [x]
 - **Tasks:** Add RapidFuzz (token_set_ratio / partial_ratio), normalise names, capacity tolerance, tech/type compatibility gates.
 - **Acceptance:** ≥X% lift in recall at fixed precision on sample set; ablation note showing where fuzzy helps/hurts.
 
-### 2) Confidence scoring [ ]
+### 2) Confidence scoring [x]
 - **Tasks:** Combine features (name score, capacity delta, technology match, substation/TO cue) into a weighted score; expose `score` and `match` (boolean via threshold).
 - **Acceptance:** Threshold rationale documented; precision/recall curve plotted; default threshold chosen and justified.
 
-### 3) Performance evaluation [ ]
+### 3) Performance evaluation [x]
 - **Tasks:** Time endpoints on N queries; record p50/p95 latency and throughput on the sample dataset; add simple benchmark script.
 - **Acceptance:** Report p50/p95 and memory footprint; note any hotspots and one optimisation taken (e.g., precomputed indices).
 

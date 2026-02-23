@@ -1,0 +1,324 @@
+"""
+Performance benchmark for the REPD Reconciliation Service.
+
+Measures latency (p50/p95) and throughput for reconciliation queries.
+
+Usage:
+    # Start the server first:
+    uvicorn app.main:app --port 8001
+
+    # Run benchmark:
+    python benchmark.py
+
+    # With options:
+    python benchmark.py --queries 200 --batch-size 10 --url http://localhost:8001
+"""
+
+import argparse
+import statistics
+import time
+import json
+import sys
+from dataclasses import dataclass
+from typing import List
+
+try:
+    import httpx
+except ImportError:
+    print("Error: httpx required. Run: pip install httpx")
+    sys.exit(1)
+
+# -----------------------------
+#  sample data
+# -----------------------------
+
+SAMPLE_QUERIES = [
+    "Aberarder Wind Farm",
+    "Moray Offshore Wind",
+    "East Coast Solar",
+    "Highland Wind Project",
+    "Solar Farm",
+    "Wind",
+    "Offshore Platform Alpha",
+    "Scottish Power Renewables",
+    "EDF Wind Farm",
+    "Octopus Solar Park",
+    "Beatrice Offshore",
+    "Hornsea Project",
+    "Triton Knoll",
+    "Dogger Bank",
+    "Seagreen Wind",
+    "Neart na Gaoithe",
+    "Inch Cape",
+    "Moray West",
+    "Berwick Bank",
+    "Green Volt",
+]
+
+# -----------------------------
+#  result model
+# -----------------------------
+
+@dataclass
+class BenchmarkResult:
+    """Results from a benchmark run."""
+    total_queries: int
+    total_time_seconds: float
+    latencies_ms: List[float]
+    errors: int
+
+    @property
+    def throughput_gps(self) -> float:
+        """Queries per second."""
+        if self.total_time_seconds <= 0:
+            return 0.0
+        return self.total_queries / self.total_time_seconds
+    
+    @property
+    def p50_ms(self) -> float:
+        """Median latency."""
+        if not self.latencies_ms:
+            return 0.0
+        return statistics.median(self.latencies_ms)
+    
+    @property
+    def p95_ms(self) -> float:
+        """95th percentile latency."""
+        if not self.latencies_ms:
+            return 0.0
+        sorted_latencies = sorted(self.latencies_ms)
+        idx = int(len(sorted_latencies) * 0.95)
+        return sorted_latencies[min(idx, len(sorted_latencies) - 1)]
+    
+    @property
+    def p99_ms(self) -> float:
+        """99th percentile latency."""
+        if not self.latencies_ms:
+            return 0.0
+        sorted_latencies = sorted(self.latencies_ms)
+        idx = int(len(sorted_latencies) * 0.99)
+        return sorted_latencies[min(idx, len(sorted_latencies) - 1)]
+    
+    @property
+    def mean_ms(self) -> float:
+        """Mean latency."""
+        if not self.latencies_ms:
+            return 0.0
+        return statistics.mean(self.latencies_ms)
+    
+    @property
+    def min_ms(self) -> float:
+        """Minimum latency."""
+        if not self.latencies_ms:
+            return 0.0
+        return min(self.latencies_ms)
+    
+    @property
+    def max_ms(self) -> float:
+        """Maximum latency."""
+        if not self.latencies_ms:
+            return 0.0
+        return max(self.latencies_ms)
+    
+# -----------------------------
+#  benchmarks
+# -----------------------------
+
+def run_single_query_benchmark(
+    client: httpx.Client,
+    base_url: str,
+    num_queries: int,
+) -> BenchmarkResult:
+    """Benchmark single query requests (one at a time)."""
+    latencies: List[float] = []
+    errors = 0
+
+    print(f"Running {num_queries} single-query requests...")
+    start_total = time.perf_counter()
+
+    for i in range(num_queries):
+        query = SAMPLE_QUERIES[i % len(SAMPLE_QUERIES)]
+
+        start = time.perf_counter()
+        try:
+            resp = client.get(f"{base_url}/reconcile", params={"q": query})
+            if resp.status_code != 200:
+                errors += 1
+        except Exception as e:
+            errors += 1
+            print(f" Error on query {i}: {e}")
+            continue
+        end = time.perf_counter()
+
+        latencies.append((end - start) * 1000)
+
+        if (i + 1) % 50 == 0:
+            print(f" Completed {i + 1}/{num_queries}")
+
+    end_total = time.perf_counter()
+
+    return BenchmarkResult(
+        total_queries=num_queries,
+        total_time_seconds=end_total - start_total,
+        latencies_ms=latencies,
+        errors=errors,
+    )
+
+def run_batch_query_benchmark(
+    client: httpx.Client,
+    base_url: str,
+    num_queries: int,
+    batch_size: int,
+) -> BenchmarkResult:
+    """Benchmark batch query requests."""
+    latencies: List[float] = []
+    errors = 0
+    total_queries = 0
+
+    num_batches = (num_queries + batch_size - 1)
+    print(f"Running {num_batches} batch requests (batch size: {batch_size})...")
+
+    start_total = time.perf_counter()
+
+    for batch_num in range(num_batches):
+        queries = {}
+        for i in range(batch_size):
+            query_idx = batch_num * batch_size + i
+            if query_idx >= num_queries:
+                break
+            query = SAMPLE_QUERIES[query_idx % len(SAMPLE_QUERIES)]
+            queries[f"q{i}"] = {"query": query, "limit": 5}
+
+        start = time.perf_counter()
+        try:
+            resp = client.post(
+                f"{base_url}/reconcile",
+                data={"queries": json.dumps(queries)},
+            )
+            if resp.status_code != 200:
+                errors += 1
+        except Exception as e:
+            errors +=1
+            print (f" Error on batch {batch_num}: {e}")
+            continue
+        end = time.perf_counter()
+
+        latencies.append((end - start) * 1000)
+        total_queries += len(queries)
+
+        if (batch_num + 1) % 10 == 0:
+            print(f" Completed {batch_num + 1}/{num_batches} batches")
+
+    end_total = time.perf_counter()
+
+    return BenchmarkResult(
+        total_queries=total_queries,
+        total_time_seconds=end_total - start_total,
+        latencies_ms=latencies,
+        errors=errors,
+    )
+
+# -----------------------------
+#  helpers
+# -----------------------------
+
+def check_health(client: httpx.Client, base_url: str) -> bool:
+    """Check if the service is running."""
+    try:
+        resp = client.get(f"{base_url}/healthy")
+        if resp.status_code == 200:
+            data = resp.json()
+            print(f"Service healthy: {data.get('project_count', '?')} projects loaded")
+            return True
+        else:
+            print(f"Service unhealthy: {resp.status_code}")
+            return False
+    except Exception as e:
+        print(f"Cannot connect to service: {e}")
+        return False
+
+def print_results(name: str, result: BenchmarkResult) -> None:
+    """Print benchmark results in a formatted table."""
+    print(f"\n{'=' * 50}")
+    print(f" {name}")
+    print('=' * 50)
+    print(f"  Total queries:    {result.total_queries}")
+    print(f"  Total time:       {result.total_time_seconds:.2f}s")
+    print(f"  Throughput:       {result.throughput_gps:.1f} queries/sec")
+    print(f"  Errors:           {result.errors}")
+    print()
+    print("  Latency:")
+    print(f"    Min:            {result.min_ms:.1f} ms")
+    print(f"    Mean:           {result.mean_ms:.1f} ms")
+    print(f"    p50 (median):   {result.p50_ms:.1f} ms")
+    print(f"    p95:            {result.p95_ms:.1f} ms")
+    print(f"    p99:            {result.p99_ms:.1f} ms")
+    print(f"    Max:            {result.max_ms:.1f} ms")
+    print()
+
+# -----------------------------
+#  main
+# -----------------------------
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Benchmark the reconciliation service")
+    parser.add_argument(
+        "--url",
+        default="http://localhost:8001",
+        help="Base URL of the service (default: http://localhost:8001)",
+    )
+    parser.add_argument(
+        "--queries",
+        type=int,
+        default=100,
+        help="Number of queries to run (default: 100)",
+    )
+    parser.add_argument(
+        "--batch-size",
+        type=int,
+        default=10,
+        help="Batch size for batch benchmark (default: 10)",
+    )
+    parser.add_argument(
+        "--skip-single",
+        action="store_true",
+        help="Skip single-query benchmark",
+    )
+    parser.add_argument(
+        "--skip-batch",
+        action="store_true",
+        help="Skip batch-query benchmark",
+    )
+    args = parser.parse_args()
+
+    print("REPD Reconciliation Service Benchmark")
+    print("=" * 50)
+    print(f"Target: {args.url}")
+    print(f"Queries: {args.queries}")
+    print()
+
+    with httpx.Client(timeout=30.0) as client:
+        if not check_health(client, args.url):
+            print("\nService not available. Start it with:")
+            print("  uvicorn app.main:app --port 8001")
+            sys.exit(1)
+
+        print()
+
+        if not args.skip_single:
+            single_result = run_single_query_benchmark(
+                client, args.url, args.queries
+            )
+            print_results("Single Query Benchmark", single_result)
+
+        if not args.skip_batch:
+            batch_result = run_batch_query_benchmark(
+                client, args.url, args.queries, args.batch_size
+            )
+            print_results(f"Batch Query Benchmark (batch size: {args.batch_size})", batch_result)
+
+    print("Benchmark complete.")
+
+
+if __name__ == "__main__":
+    main()

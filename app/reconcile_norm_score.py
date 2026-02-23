@@ -26,7 +26,7 @@ def name_similarity(query: str, candidate: str) -> float:
         return 0.0
 
     if fuzz is not None:
-        return float(fuzz.partial_ratio(qn, cn))
+        return float(fuzz.token_set_ratio(qn, cn))
 
     if qn == cn:
         return 100.0
