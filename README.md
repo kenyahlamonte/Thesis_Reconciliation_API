@@ -1,6 +1,6 @@
 # UK Renewable Energy Reconciliation Service
 
-A lightweight reconciliation service implementing the **OpenRefine Reconciliation API (v0.2)** for matching NESO TEC client-side data against the **Renewable Energy Planning Database (REPD)**.
+A lightweight reconciliation service implementing the **OpenRefine Reconciliation API (v0.3.2)** for matching NESO TEC client-side data against the **Renewable Energy Planning Database (REPD)**.
 
 ### ---------------
 ### Datasets & licences

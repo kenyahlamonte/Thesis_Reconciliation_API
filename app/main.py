@@ -30,7 +30,7 @@ logger = get_logger(__name__)
 async def lifespan(app: FastAPI):
     """Application lifespan events - startup and shutdown."""
     logger.info("Reconciliation Service starting up")
-    logger.info("Service version: 0.3.1")
+    logger.info("Service version: 0.3.2")
 
     if check_database_exists():
         count = get_project_count()
@@ -45,7 +45,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="UK Renewable Energy Reconciliation Service",
     description="W3C-compliant reconciliation service for matching renewable energy projects against REPD",
-    version="0.3.1",
+    version="0.3.2",
     docs_url="/docs",
     redoc_url=None,
     lifespan=lifespan,

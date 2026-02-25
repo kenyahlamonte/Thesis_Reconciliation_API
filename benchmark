@@ -146,14 +146,14 @@ def run_single_query_benchmark(
                 errors += 1
         except Exception as e:
             errors += 1
-            print(f" Error on query {i}: {e}")
+            print(f"Error on query {i}: {e}")
             continue
         end = time.perf_counter()
 
         latencies.append((end - start) * 1000)
 
         if (i + 1) % 50 == 0:
-            print(f" Completed {i + 1}/{num_queries}")
+            print(f"Completed {i + 1}/{num_queries}")
 
     end_total = time.perf_counter()
 
@@ -175,7 +175,7 @@ def run_batch_query_benchmark(
     errors = 0
     total_queries = 0
 
-    num_batches = (num_queries + batch_size - 1)
+    num_batches = (num_queries + batch_size - 1) // batch_size
     print(f"Running {num_batches} batch requests (batch size: {batch_size})...")
 
     start_total = time.perf_counter()
@@ -199,7 +199,7 @@ def run_batch_query_benchmark(
                 errors += 1
         except Exception as e:
             errors +=1
-            print (f" Error on batch {batch_num}: {e}")
+            print (f"Error on batch {batch_num}: {e}")
             continue
         end = time.perf_counter()
 
@@ -207,7 +207,7 @@ def run_batch_query_benchmark(
         total_queries += len(queries)
 
         if (batch_num + 1) % 10 == 0:
-            print(f" Completed {batch_num + 1}/{num_batches} batches")
+            print(f"Completed {batch_num + 1}/{num_batches} batches")
 
     end_total = time.perf_counter()
 
@@ -247,7 +247,7 @@ def print_results(name: str, result: BenchmarkResult) -> None:
     print(f"  Throughput:       {result.throughput_gps:.1f} queries/sec")
     print(f"  Errors:           {result.errors}")
     print()
-    print("  Latency:")
+    print("Latency:")
     print(f"    Min:            {result.min_ms:.1f} ms")
     print(f"    Mean:           {result.mean_ms:.1f} ms")
     print(f"    p50 (median):   {result.p50_ms:.1f} ms")
@@ -300,7 +300,7 @@ def main() -> None:
     with httpx.Client(timeout=30.0) as client:
         if not check_health(client, args.url):
             print("\nService not available. Start it with:")
-            print("  uvicorn app.main:app --port 8001")
+            print("uvicorn app.main:app --port 8001")
             sys.exit(1)
 
         print()
