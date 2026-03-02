@@ -4,7 +4,7 @@ _Last updated: 21 Feb 2026_
 
 ## Overview
 The roadmap outlines the next development phases for the Renewable Reconciliation API prototype.  
-The project is currently in **Phase II** (v0.3.2)
+The project is currently in **Phase II** (v0.3.3)
 
 ---
 
@@ -70,7 +70,7 @@ The project is currently in **Phase II** (v0.3.2)
 - **Tasks:** Add simple API key via header; rate-limit per IP/key; CORS tightened for local tools only.
 - **Acceptance:** Requests without key → 401; over limit → 429; README documents how to set/use the key.
 
-### 5) Abuse resistance [ ]
+### 5) Abuse resistance [x]
 - **Tasks:** Input size caps, request body schema limits, timeout/guardrails, basic logging of anomalous patterns.
 - **Acceptance:** Oversized payload returns 413; excessive batch size returns 400 with hint; timeouts handled gracefully.
 

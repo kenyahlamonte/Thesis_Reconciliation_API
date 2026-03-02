@@ -26,11 +26,19 @@ from .logging_config import setup_logging, get_logger
 setup_logging(level="INFO")
 logger = get_logger(__name__)
 
+# -----------------------------
+#  request limits
+# -----------------------------
+
+MAX_BODY_SIZE_BYTES = 1_000_000
+MAX_BATCH_SIZE = 50
+MAX_QUERY_LENGTH = 500
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan events - startup and shutdown."""
     logger.info("Reconciliation Service starting up")
-    logger.info("Service version: 0.3.2")
+    logger.info("Service version: 0.3.3")
 
     if check_database_exists():
         count = get_project_count()
@@ -45,7 +53,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="UK Renewable Energy Reconciliation Service",
     description="W3C-compliant reconciliation service for matching renewable energy projects against REPD",
-    version="0.3.2",
+    version="0.3.3",
     docs_url="/docs",
     redoc_url=None,
     lifespan=lifespan,
@@ -61,6 +69,20 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"]
 )
+
+@app.middleware("http")
+async def limit_request_size(request: Request, call_next):
+    """Reject oversized request bodies."""
+    content_length = request.headers.get("content-length")
+
+    if content_length and int(content_length) > MAX_BODY_SIZE_BYTES:
+        logger.warning(f"Request rejected: body size {content_length} exceeds limit")
+        return JSONResponse(
+            status_code=413,
+            content={"detail": f"Request body too large. Max size: {MAX_BODY_SIZE_BYTES // 1024}KB"}
+        )
+
+    return await call_next(request)
 
 @app.api_route("/", methods=["GET", "POST"], response_model=ServiceManifest)
 def manifest() -> JSONResponse:
@@ -153,6 +175,29 @@ async def reconcile(
     if not isinstance(queries_dict, dict):
         logger.error(f"Queries must be JSON object, got {type(queries_dict)}")
         raise HTTPException(status_code=422, detail="queries must be JSON object")
+
+    # -----------------------------
+    #  abuse resistance checks
+    # -----------------------------
+
+    #check batch size
+    if len(queries_dict) > MAX_BATCH_SIZE:
+        logger.warning(f"Batch size {len(queries_dict)} exceeds limit of {MAX_BATCH_SIZE}")
+        raise HTTPException(
+            status_code=400,
+            detail=f"Batch too large: {len(queries_dict)} queries. Maximum allowed: {MAX_BATCH_SIZE}"
+        )
+
+    #check individual query lengths
+    for qid, q in queries_dict.items():
+        query_str = q.get("query", "") if isinstance(q, dict) else ""
+        if len(query_str) > MAX_QUERY_LENGTH:
+            logger.warning(f"Query '{qid}' length {len(query_str)} exceeds limit")
+            raise HTTPException(
+                status_code=400,
+                detail=f"Query '{qid}' too long: {len(query_str)} chars. Maximum: {MAX_QUERY_LENGTH}"
+            )
+
 
     #validate with Pydantic
     try:

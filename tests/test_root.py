@@ -804,3 +804,77 @@ def test_reconcile_single_query_result_type(mock_projects):
         type_obj = candidate["type"][0]
         assert type_obj["id"].startswith("/")
         assert len(type_obj["name"]) > 0
+
+# -----------------------------
+#  abuse resistance testing
+# -----------------------------
+
+def test_request_body_too_large(mock_projects):
+    """Test that oversized request body returns 413."""
+    large_query = "A" * 500
+    queries = {f"q{i}": {"query": large_query, "limit": 3} for i in range(3000)}
+
+    resp = client.post(
+        "/reconcile",
+        json={"queries": queries}
+    )
+
+    assert resp.status_code == 413
+    assert "too large" in resp.json()["detail"].lower()
+
+
+def test_batch_size_exceeded(mock_projects):
+    """Test that excessive batch size returns 400 with hint."""
+    queries = {f"q{i}": {"query": "Wind Farm", "limit": 3} for i in range(60)}
+
+    resp = client.get("/reconcile", params={"queries": json.dumps(queries)})
+
+    assert resp.status_code == 400
+    assert "batch" in resp.json()["detail"].lower()
+    assert "50" in resp.json()["detail"]
+
+
+def test_batch_size_at_limit(mock_projects):
+    """Test that batch size exactly at limit succeeds."""
+    queries = {f"q{i}": {"query": "Wind", "limit": 3} for i in range(50)}
+
+    resp = client.get("/reconcile", params={"queries": json.dumps(queries)})
+
+    assert resp.status_code == 200
+    assert len(resp.json()) == 50
+
+
+def test_query_string_too_long(mock_projects):
+    """Test that oversized query string returns 400."""
+    long_query = "A" * 600
+    queries = {"q0": {"query": long_query, "limit": 3}}
+
+    resp = client.get("/reconcile", params={"queries": json.dumps(queries)})
+
+    assert resp.status_code == 400
+    assert "too long" in resp.json()["detail"].lower()
+    assert "q0" in resp.json()["detail"]
+
+
+def test_query_string_at_limit(mock_projects):
+    """Test that query string exactly at limit succeeds."""
+    query_at_limit = "A" * 500
+    queries = {"q0": {"query": query_at_limit, "limit": 3}}
+
+    resp = client.get("/reconcile", params={"queries": json.dumps(queries)})
+
+    assert resp.status_code == 200
+
+
+def test_multiple_queries_one_too_long(mock_projects):
+    """Test that one oversized query in batch is caught."""
+    queries = {
+        "q0": {"query": "Valid query", "limit": 3},
+        "q1": {"query": "A" * 600, "limit": 3},
+        "q2": {"query": "Another valid", "limit": 3},
+    }
+
+    resp = client.get("/reconcile", params={"queries": json.dumps(queries)})
+
+    assert resp.status_code == 400
+    assert "q1" in resp.json()["detail"]
