@@ -51,8 +51,8 @@ def fetch_all_projects(db_path: Path = DEFAULT_DB_PATH) -> List[ProjectRecord]:
             logger.debug(f"Loaded {len(site_map)} sites")
 
             company_map = {
-                r['site_id']: (r['site_name'], r['name_normalised'] or "")
-                for r in conn.execute("SELECT site_id, site_name, name_normalised FROM site")
+                r['company_id']: (r['legal_name'], r['name_normalised'] or "")
+                for r in conn.execute("SELECT company_id, legal_name, name_normalised FROM company")
             }
             logger.debug(f"Loaded {len(company_map)} companies")
 
